@@ -21,7 +21,7 @@ class Importer(object):
 
     @staticmethod
     def _is_needed_data_sheet(sheet_name):
-        if ("Imputed" in sheet_name or "Normalised" in sheet_name or "normalized" in sheet_name) \
-                and "(" not in sheet_name:
+        m = re.match("[\w\d\s]+-(imputed|(normali(s|z)ed))$", sheet_name, re.I)
+        if m:
             return True
         return False

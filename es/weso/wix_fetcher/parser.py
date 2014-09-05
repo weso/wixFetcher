@@ -1,7 +1,6 @@
 __author__ = 'Miguel'
 __date__ = '02/09/2014'
 
-import xlrd
 import sys
 
 
@@ -33,5 +32,5 @@ class Parser(object):
             value = str(sheet.row(row)[i].value)
             if value in [None, "", " "]:
                 break
-            sys.stdout.write("\n    " + value)
+            sys.stdout.write("\n    " + str(int(sheet.row(Parser.YEAR_ROW)[i].value)) + " -> " + value)
             i += 1

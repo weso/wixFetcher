@@ -20,18 +20,19 @@ def run():
     try:
         data_sheets = importer.get_data_sheets()
     except BaseException as e:
-        log.error("While accessing the Excel data file: " + e.message)
+        log.error("While accessing the Excel data file: " + e.message + "\n")
         raise RuntimeError
     for sheet in data_sheets:
         try:
             parser.parse_data_sheet(sheet)
         except BaseException as e:
-            log.error("While parsing sheet \"" + sheet.name + "\": " + e.message)
+            log.error("While parsing sheet \"" + sheet.name + "\": " + e.message + "\n")
+            raise RuntimeError
 
 
 if __name__ == '__main__':
     try:
         run()
-        print 'Done!'
+        print '\nDone!'
     except BaseException:
-        print 'Execution finalized with errors. Check logs.'
+        print '\nExecution finalized with errors. Check logs.'
