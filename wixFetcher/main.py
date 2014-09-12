@@ -2,8 +2,8 @@ __author__ = 'Miguel'
 __date__ = '02/09/2014'
 
 import logging
-from es.weso.wix_fetcher.extractor import Extractor
-from es.weso.wix_fetcher.parser import Parser
+from application.wixFetcher.app.extractor import Extractor
+from application.wixFetcher.app.parser import Parser
 
 
 def configure_log():
@@ -19,13 +19,14 @@ def run():
     parser = Parser(log)
     try:
         data_sheets = extractor.get_data_sheets()
+        for sheet in data_sheets:
+            try:
+                parser.parse_data_sheet(sheet)
+            except BaseException as e:
+                log.error("While parsing sheet \"" + sheet.name + "\": " + e.message + "\n")
     except BaseException as e:
         log.error("While accessing the Excel data file: " + e.message + "\n")
-    for sheet in data_sheets:
-        try:
-            parser.parse_data_sheet(sheet)
-        except BaseException as e:
-            log.error("While parsing sheet \"" + sheet.name + "\": " + e.message + "\n")
+
 
 
 if __name__ == '__main__':

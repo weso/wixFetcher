@@ -8,6 +8,7 @@ class ComputingModule(object):
         self._log = log
         self._current_sheet_means = dict()
         self.current_sheet_stds = dict()
+        self._calculated_zscores = []
 
     def _initiate_sheet_values(self, sheet):
         pass
