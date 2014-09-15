@@ -100,7 +100,7 @@ class Parser(object):
             observation.add_computation(type="normalized",
                                         mean=self._get_mean(observation),
                                         std_deviation=self._get_std_desv(observation),
-                                        slice=None) #TODO: Probably incorrect
+                                        slice=None)  # TODO: Probably incorrect
 
         if computation_type == "scored":
             observation.add_computation(type="scored",
@@ -167,6 +167,13 @@ class ExtraCalculator(object):
     It offers data obtained from the composition of several values in a column (for a concrete year)
 
     """
+
+    ROW_OF_YEARS = 0
+    ROW_START_COUNTRIES = 1
+    ROW_END_COUNTRIES = 81
+    ROW_OF_MEAN = 83
+    ROW_OF_SD = 85
+
     def __init__(self, sheet):
         self._sheet = sheet
         self._means = {}
@@ -199,13 +206,42 @@ class ExtraCalculator(object):
 
 
     def _calculate_min_max(self, year):
-        pass
+        column_index = self._detect_column_of_year(year)
+        min_value = None
+        max_value = None
+        for i in range(self.ROW_START_COUNTRIES, self.ROW_END_COUNTRIES + 1):
+            temp_value = self._sheet.row(i)[column_index].value
+            if min is None or temp_value < min:
+                min_value = temp_value
+            if max is None or temp_value > max:
+                max_value = temp_value
+        self._mins[year] = min_value
+        self._maxs[year] = max_value
 
     def _calculate_mean(self, year):
-        pass
+        column = self._detect_column_of_year(year)
+        mean_value = self._sheet.row(self.ROW_OF_MEAN)[column]
+        self._means[year] = mean_value
 
     def _calculate_std_deriv(self, year):
-        pass
+        column = self._detect_column_of_year(year)
+        std_dev = self._sheet.row(self.ROW_OF_SD)[column]
+        self._std_dervis[year] = std_dev
 
+
+    def _detect_column_of_year(self, year):
+        """
+        It return the index of the column in which the data associated with the year received are placed
+
+        :param year:
+        :return:
+        """
+
+        for i in range(1, self._sheet.ncols):
+            cell = self._sheet.row(self.ROW_OF_YEARS)[i]
+            if cell.value == year:
+                return i
+
+        raise RuntimeError(" Trying to find a year not contained in a sheet. Year " + year + ", sheet " + self._sheet.name)
 
 
