@@ -4,7 +4,7 @@ __date__ = '02/09/2014'
 import logging
 
 from application.wixFetcher.app.parser import Parser
-from app.extractor import Extractor
+from application.wixFetcher.app.extractor import Extractor
 
 
 def configure_log():
