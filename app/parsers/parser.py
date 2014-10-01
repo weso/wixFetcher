@@ -3,16 +3,20 @@ __author__ = 'Dani'
 from ..extractor import Extractor
 from .secondaryindicatorsparser import SecondaryIndicatorsParser
 from .primaryindicatorsparser import PrimaryIndicatorsAndGroupsParser
+from .observationsparser import ObservationsParser
 from infrastructure.mongo_repos.indicator_repository import IndicatorRepository
 from infrastructure.mongo_repos.component_repository import ComponentRepository
 from infrastructure.mongo_repos.subindex_repository import SubindexRepository
 from infrastructure.mongo_repos.index_repository import IndexRepository
+from infrastructure.mongo_repos.observation_repository import ObservationRepository
+from infrastructure.mongo_repos.area_repository import AreaRepository
 
 
 class Parser(object):
 
     _SECONDARY_INDICATOR_METADATA_SHEET = 1
     _PRIMARY_INDICATOR_METADATA_SHEET = 0
+    _FIRST_OBSERVATIONS_SHEET = 2
 
 
     def __init__(self, log):
@@ -26,6 +30,8 @@ class Parser(object):
         components_db = ComponentRepository('127.0.0.1')
         subindexes_db = SubindexRepository('127.0.0.1')
         indexes_db = IndexRepository('127.0.0.1')
+        observations_db = ObservationRepository('127.0.0.1')
+        areas_db = AreaRepository('127.0.0.1')
 
 
         #Parsign indicatros
@@ -38,8 +44,12 @@ class Parser(object):
                                                                      db_subindex=subindexes_db,
                                                                      db_index=indexes_db)
         primary_indicators_parser.parse_indicators_sheet(sheets[self._PRIMARY_INDICATOR_METADATA_SHEET])
+        observations_parser = ObservationsParser(self._log,
+                                                 db_observations=observations_db,
+                                                 db_countries=areas_db)
+        for i in range(self._FIRST_OBSERVATIONS_SHEET, len(sheets) - 2):
+            observations_parser.parse_data_sheet(sheets[i])
 
-        # observation
 
 
 
