@@ -2,8 +2,9 @@ __author__ = 'Miguel'
 __date__ = '02/09/2014'
 
 import logging
-from es.weso.wix_fetcher.extractor import Extractor
-from es.weso.wix_fetcher.parser import Parser
+import xlrd
+
+from application.wixFetcher.app.parsers.parser import Parser
 
 
 def configure_log():
@@ -15,22 +16,32 @@ def configure_log():
 def run():
     configure_log()
     log = logging.getLogger('wixfetcher')
-    extractor = Extractor(log)
+    print "E"
     parser = Parser(log)
-    try:
-        data_sheets = extractor.get_data_sheets()
-    except BaseException as e:
-        log.error("While accessing the Excel data file: " + e.message + "\n")
-    for sheet in data_sheets:
-        try:
-            parser.parse_data_sheet(sheet)
-        except BaseException as e:
-            log.error("While parsing sheet \"" + sheet.name + "\": " + e.message + "\n")
+    print "A"
+    book = xlrd.open_workbook("data_file.xlsx")
+    print "YEYA"
+    parser.run(book)
+    print "b"
+    # extractor = Extractor(log)
+    # parser = ObservationsParser(log)
+    # try:
+    #     data_sheets = extractor.get_data_sheets()
+    #     for sheet in data_sheets:
+    #         try:
+    #             parser.parse_data_sheet(sheet)
+    #         except BaseException as e:
+    #             log.error("While parsing sheet \"" + sheet.name + "\": " + e.message + "\n")
+    # except BaseException as e:
+    #     log.error("While accessing the Excel data file: " + e.message + "\n")
+
 
 
 if __name__ == '__main__':
-    try:
-        run()
-        print '\nDone!'
-    except BaseException:
-        print '\nExecution finalized with errors. Check logs.'
+    # try:
+    #     run()
+    #     print '\nDone!'
+    # except BaseException:
+    #     print '\nExecution finalized with errors. Check logs.'
+    run()
+    print '\nDone!'

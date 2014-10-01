@@ -7,8 +7,9 @@ import re
 
 class Extractor(object):
 
-    def __init__(self, log):
+    def __init__(self, log, book):
         self._log = log
+        self._book = book
 
     def get_data_sheets(self):
         '''
@@ -16,9 +17,9 @@ class Extractor(object):
 
         :return: the sheet collection needed
         '''
-        book = xlrd.open_workbook('./data_file.xlsx')
         sheets = []
-        for sheet in book.sheets():
+        for sheet in self._book.sheets():
+            print "Mojos"
             if self._is_needed_data_sheet(sheet.name):
                 sheets.append(sheet)
                 self._log.info("Sheet " + sheet.name + " retrieved")
@@ -32,8 +33,9 @@ class Extractor(object):
 
         :return: True|False depending on the sheet is or not needed
         '''
-        m = re.match("[\w\d\s]+-(imputed|(normali(s|z)ed))$", sheet_name, re.I)
-        # Put regex in config file?
-        if m:
-            return True
-        return False
+        return True
+        # m = re.match("[\w\d\s]+-(imputed|(normali(s|z)ed))$", sheet_name, re.I)
+        # # Put regex in config file?
+        # if m:
+        #     return True
+        # return False
