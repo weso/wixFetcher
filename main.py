@@ -28,8 +28,9 @@ def run():
         #         parser.parse_data_sheet(sheet)
         #     except BaseException as e:
         #         log.error("While parsing sheet \"" + sheet.name + "\": " + e.message + "\n")
+
         comp_module = ComputationModule(log)
-        comp_module.validate_observations()
+        comp_module.run()
 
 if __name__ == '__main__':
     run()
