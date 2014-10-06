@@ -15,7 +15,8 @@ class ExcelUtil(object):
     @staticmethod
     def get_ncols_from_cell(sheet, row_number, col_number):
         num_cols = 0
-        while not ExcelUtil.is_empty_cell(sheet.row(row_number)[col_number + num_cols].value):
+        while (num_cols + col_number) < sheet.ncols and \
+                not ExcelUtil.is_empty_cell(sheet.row(row_number)[col_number + num_cols].value):
             num_cols += 1
         return num_cols
 
@@ -26,10 +27,16 @@ class ExcelUtil(object):
         elif re.match("(free)|(open)", value1, re.I) \
                 and re.match("(free)|(open)", value2, re.I):
             return True
-        elif re.match("communicat(i|o)ns infrastructure", value1, re.I)\
-                and re.match("communicat(i|o)ns infrastructure", value2, re.I):
+        elif re.match("communicat(io|oi)ns infrastructure", value1, re.I)\
+                and re.match("communicat(io|oi)ns infrastructure", value2, re.I):
             return True
         elif re.match("economic( impact)?", value1, re.I)\
                 and re.match("economic( impact)?", value2, re.I):
+            return True
+        elif re.match("political( impact)?", value1, re.I)\
+                and re.match("political( impact)?", value2, re.I):
+            return True
+        elif re.match("social and environmental( impact)?", value1, re.I)\
+                and re.match("social and environmental( impact)?", value2, re.I):
             return True
         return False
