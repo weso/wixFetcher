@@ -8,43 +8,22 @@ from webindex.domain.model.subindex import create_sub_index
 class SecondaryIndicatorsParser(object):
 
 
-    #Row indexes
-    FIRST_DATA_ROW = 1
-    LAST_DATA_ROW = 24
-
-    #Column topics indexes
-    SUBINDEX = 0
-    COMPONENT = 1
-    CODE = 2
-    NAME = 3
-    DESCRIPTION = 4
-    SOURCE = 5
-    DATA_PROVIDER = 6
-    LATEST_REPORT = 7
-    DATA_RANGE = 8
-    HIGH_LOW = 9
-
-    #Other constants
-    COUNTRY_COVERAGE = 84  # todo: check correct number
-    INTERVAL_STARTS = 2007
-    INTERVAL_ENDS = 2013
 
 
 
-    def __init__(self, log, db):
+
+    def __init__(self, log, db, config):
         self._log = log
         self._db = db
+        self._config = config
         self._indicators = []
         self._components = {}
         self._subindexes = {}
 
     def parse_indicators_sheet(self, sheet):
-        for i in range(self.FIRST_DATA_ROW, self.LAST_DATA_ROW + 1):
+        for i in range(self._config.getint("SECONDARY_INDICATORS_PARSER", "FIRST_DATA_ROW"),
+                       self._config.getint("SECONDARY_INDICATORS_PARSER", "LAST_DATA_ROW") + 1):
             self._parse_indicator_row(sheet.row(i))
-        #Printing test
-
-        for i in self._indicators:
-            print i.code, i.source, i.data_prov_link, i.latest_rep, i.high_low, i.min_range, i.max_range, i.component.name, i.description, i.name
 
         for excell_ind in self._indicators:
             model_ind = self._turn_excell_ind_into_model_ind(excell_ind)
@@ -56,15 +35,15 @@ class SecondaryIndicatorsParser(object):
 
     def _turn_excell_ind_into_model_ind(self, excell_ind):
         result = create_indicator(_type="Secondary",
-                                  country_coverage=self.COUNTRY_COVERAGE,
+                                  country_coverage=self._config.getint("SECONDARY_INDICATORS_PARSER", "COUNTRY_COVERAGE"),
                                   provider_link=excell_ind.data_prov_link,
                                   republish=True,  # We may have to check this
                                   high_low=excell_ind.high_low,
                                   label=excell_ind.name,
                                   comment=excell_ind.description,
                                   notation=None,  # For rdf. Unedeed at this point
-                                  interval_starts=self.INTERVAL_STARTS,
-                                  interval_ends=self.INTERVAL_ENDS,
+                                  interval_starts=self._config.getint("SECONDARY_INDICATORS_PARSER", "INTERVAL_STARTS"),
+                                  interval_ends=self._config.getint("SECONDARY_INDICATORS_PARSER", "INTERVAL_ENDS"),
                                   code=excell_ind.code,
                                   organization=None)  # We will add it, if needed, through a method
         if excell_ind.source is not None:
@@ -81,13 +60,15 @@ class SecondaryIndicatorsParser(object):
                                  min_range=self._look_for_min_range(row),  # String, could be unbounded
                                  max_range=self._look_for_max_range(row),  # String, could be unbounded
                                  high_low=self._look_for_high_low(row))
-        self._process_components_and_subindexes(result, row)  # TODO
+        self._process_components_and_subindexes(result, row)
         self._indicators.append(result)
 
 
     def _process_components_and_subindexes(self, indicator, row):
-        subindex_name = self._normalize_grouped_entity_name(row[self.SUBINDEX].value)
-        component_name = self._normalize_grouped_entity_name(row[self.COMPONENT].value)
+        subindex_name = self._normalize_grouped_entity_name(row[self._config.getint("SECONDARY_INDICATORS_PARSER",
+                                                                                    "SUBINDEX")].value)
+        component_name = self._normalize_grouped_entity_name(row[self._config.getint("SECONDARY_INDICATORS_PARSER",
+                                                                                     "COMPONENT")].value)
 
         subindex = None
         component = None
@@ -125,21 +106,21 @@ class SecondaryIndicatorsParser(object):
         return original.capitalize()
 
     def _look_for_high_low(self, row):
-        cell = row[self.HIGH_LOW]
+        cell = row[self._config.getint("SECONDARY_INDICATORS_PARSER", "HIGH_LOW")]
         if ExcellUtils.is_empty_cell(cell):
             return None
         else:
             return cell.value
 
     def _look_for_max_range(self, row):
-        cell = row[self.DATA_RANGE]
+        cell = row[self._config.getint("SECONDARY_INDICATORS_PARSER", "DATA_RANGE")]
         if ExcellUtils.is_empty_cell(cell):
             return None
         else:
             return self._parse_max_range(cell.value)
 
     def _look_for_min_range(self, row):
-        cell = row[self.DATA_RANGE]
+        cell = row[self._config.getint("SECONDARY_INDICATORS_PARSER", "DATA_RANGE")]
         if ExcellUtils.is_empty_cell(cell):
             return None
         else:
@@ -175,7 +156,7 @@ class SecondaryIndicatorsParser(object):
 
 
     def _look_for_latest_rep(self, row):
-        cell = row[self.LATEST_REPORT]
+        cell = row[self._config.getint("SECONDARY_INDICATORS_PARSER", "LATEST_REPORT")]
         if ExcellUtils.is_empty_cell(cell):
             return None
         else:
@@ -183,7 +164,7 @@ class SecondaryIndicatorsParser(object):
 
 
     def _look_for_data_prov_link(self, row):
-        cell = row[self.DATA_PROVIDER]
+        cell = row[self._config.getint("SECONDARY_INDICATORS_PARSER", "DATA_PROVIDER")]
         if ExcellUtils.is_empty_cell(cell):
             return None
         else:
@@ -191,7 +172,7 @@ class SecondaryIndicatorsParser(object):
 
 
     def _look_for_source(self, row):
-        cell = row[self.SOURCE]
+        cell = row[self._config.getint("SECONDARY_INDICATORS_PARSER", "SOURCE")]
         if ExcellUtils.is_empty_cell(cell):
             return None
         else:
@@ -199,7 +180,7 @@ class SecondaryIndicatorsParser(object):
 
 
     def _look_for_description(self, row):
-        cell = row[self.DESCRIPTION]
+        cell = row[self._config.getint("SECONDARY_INDICATORS_PARSER", "DESCRIPTION")]
         if ExcellUtils.is_empty_cell(cell):
             return None
         else:
@@ -223,7 +204,7 @@ class SecondaryIndicatorsParser(object):
 
 
     def _look_for_name(self, row):
-        cell = row[self.NAME]
+        cell = row[self._config.getint("SECONDARY_INDICATORS_PARSER", "NAME")]
         if ExcellUtils.is_empty_cell(cell):
             return None
         else:
@@ -232,7 +213,7 @@ class SecondaryIndicatorsParser(object):
 
 
     def _look_for_code(self, row):
-        cell = row[self.CODE]
+        cell = row[self._config.getint("SECONDARY_INDICATORS_PARSER", "CODE")]
         if ExcellUtils.is_empty_cell(cell):
             return None
         else:
