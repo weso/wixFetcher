@@ -4,28 +4,20 @@ __date__ = '02/09/2014'
 import sys
 
 from webindex.domain.model.observation.observation import create_observation
+from .utils import initialize_country_dict, look_for_country_name_exception, build_label_for_observation
 from utility.time import utc_now
 
 
-class ObservationsParser(object):
+class SecondaryObservationsParser(object):
 
-    YEAR_ROW = 0
-    COUNTRY_COLUMN = 0
 
-    def __init__(self, log, db_observations, db_countries):
+
+    def __init__(self, log, db_observations, db_countries, config):
         self._log = log
+        self._config = config
         self._extra_calculator = None
         self._db_observations = db_observations
-        self._country_list = self._initialize_country_list(db_countries)  # It will contain a dictionary of [name] --> [code]
-
-
-    @staticmethod
-    def _initialize_country_list(db_countries):
-        result = {}
-        country_dicts = db_countries.find_countries()['data']
-        for a_dict in country_dicts:
-            result[a_dict['name']] = a_dict['iso3']
-        return result
+        self._country_dict = initialize_country_dict(db_countries)  # It will contain a dictionary of [name] --> [code]
 
 
     def parse_data_sheet(self, sheet):
@@ -35,19 +27,16 @@ class ObservationsParser(object):
         :param sheet: the Excel sheet object with all the data
         :return: None (for now)
         '''
-        self._extra_calculator = ExtraCalculator(sheet)
-        # sys.stdout.write("\n---------" + sheet.name + "---------\n")
+
+        self._extra_calculator = ExtraCalculator(sheet, self._config)
         i = 1
         while i < sheet.nrows:
-            country_name = sheet.col(self.COUNTRY_COLUMN)[i].value
+            country_name = sheet.col(self._config.getint("SECONDARY_OBSERVATIONS_PARSER", "_COUNTRY_COLUMN"))[i].value
             if country_name in [None, "", " "]:  # It means we have ended countries. Means and DVs come.
                 break
-            # sys.stdout.write("  " + country_name)
 
             self._parse_country_data(sheet, i, country_name, sheet.name)
-            # sys.stdout.write("\n")
             i += 1
-        # print "\n"
 
     def _parse_country_data(self, sheet, row, country_name, sheet_name):
         """
@@ -60,63 +49,63 @@ class ObservationsParser(object):
         """
 
         i = 1
-        while i < sheet.ncols - 2:
-            # -2 because there's one more column due to the new countries note. Should be -1 in future cases.
+        while i < sheet.ncols:
             obs_value = sheet.row(row)[i].value
-            if obs_value in [None, "", " ", ".", "..", "...", "...."]:
-                break
-            year_value = int(sheet.row(ObservationsParser.YEAR_ROW)[i].value)
-            # sys.stdout.write("\n    " + str(year_value) + " -> " + str(obs_value))
-            model_obs = self._create_observation(obs_value, year_value, country_name, sheet_name)
-            self._db_observations.insert_observation(model_obs)
+            if obs_value not in [None, "", " ", ".", "..", "...", "...."]:
+                year_value = int(sheet.row(self._config.getint("SECONDARY_OBSERVATIONS_PARSER", "_YEAR_ROW"))[i].value)
+                indicator_code, computation_type = self._obtain_indicator_code_and_computation_type_from_sheet_name(sheet_name)
+                model_obs = self._create_observation(obs_value,
+                                                     year_value,
+                                                     country_name,
+                                                     indicator_code,
+                                                     computation_type)
+                self._db_observations.insert_observation(observation=model_obs,
+                                                         area_iso3_code=self._get_country_code_by_name(country_name),
+                                                         indicator_code=indicator_code,
+                                                         year_literal=year_value)
             i += 1
 
-    def _create_observation(self, obs_value, year_value, country_name, sheet_name):
+    def _create_observation(self, obs_value, year_value, country_name, indicator_code, computation_type):
         """
         This method creates observation object from all the received parameters
 
         :param obs_value: numeric value of the observation
         :param year_value: integer value containing the year which the observation is referring
         :param country_name: complete name of the country which the observation is referring
-        :param sheet_name: contains the name of the original excell sheet. indicator code and type of computation can be obtained parsing it
-
+        :param indicator_code: indicator code (not id) of an indicator
+        :param computation_type:
         :return: The observation created
         """
 
-        indicator_code, computation_type = self._obtain_indicator_code_and_computation_type_from_sheet_name(sheet_name)
-        print "Observacion con valor", obs_value, "para el year", year_value, "de", indicator_code, " y tipo", computation_type, "con country", country_name
+
         observation = create_observation(issued=utc_now(),
-                                         publisher=None, # Uneeded at this point
+                                         publisher=None,  # Uneeded at this point
                                          data_set=None,
                                          obs_type="raw",  # Just for now
-                                         label=self._build_label_for_observation(indicator_code,
-                                                                                 country_name,
-                                                                                 year_value,
-                                                                                 computation_type),
+                                         label=build_label_for_observation(indicator_code,
+                                                                           country_name,
+                                                                           year_value,
+                                                                           computation_type),
                                          status=computation_type,  # really, uneeded at this point
-                                         ref_indicator=indicator_code,  # Again, maybe this should point to indicator id,
-                                                                        # but works nice for me. At this point i don't
-                                                                        #know about ids, but codes.
+                                         ref_indicator=None,
                                          value=obs_value,
-                                         ref_area=self._get_country_code_by_name(country_name),  # Maybe this
-                                                                # is not correct, but perfectly works for me.
-                                                                # Again, it may should be pointing to an ID
-                                         ref_year=year_value)  # Maybe an entity, but works nice for my purposes.
+                                         ref_area=None,
+                                         ref_year=None)
 
         # self._add_propper_computation_to_observation(observation, computation_type)
         return observation
 
 
     def _get_country_code_by_name(self, country_name):
-        if country_name not in self._country_list:
-            possibly_correction = self._look_for_country_name_exception(country_name)
+        if country_name not in self._country_dict:
+            possibly_correction = look_for_country_name_exception(country_name)
             if possibly_correction is None:
                 self._log.warning("Unrecognized country")
                 raise BaseException("Carefull here...")
             else:
                 return self._get_country_code_by_name(possibly_correction)
         else:
-            return self._country_list[country_name]
+            return self._country_dict[country_name]
 
     @staticmethod
     def _look_for_country_name_exception(original):
@@ -164,11 +153,6 @@ class ObservationsParser(object):
 
 
 
-    @staticmethod
-    def _build_label_for_observation(indicator_code, country_name, year_value, status):
-        return indicator_code + " " + status + " in " + country_name + " during " + str(year_value)
-
-
     def _obtain_indicator_code_and_computation_type_from_sheet_name(self, sheet_name):
         """
         Receives the name of an excell sheet and extract form it two fields: indicator_code and computation_type
@@ -193,7 +177,7 @@ class ObservationsParser(object):
         """
 
         if raw_computation_type in ["Imputed", "imputed"]:
-            return "ranked"  #TODO: ensure this is the correct type to return.... not really sure about this.
+            return "raw"  #TODO: ensure this is the correct type to return.... not really sure about this.
         # if....
 
         #In case of not matching with any if...
@@ -215,22 +199,18 @@ class ObservationsParser(object):
 
 class ExtraCalculator(object):
     """
-    It offers data obtained from the composition of several values in a column (for a concrete year)
+    It offers data obtained from the composition of several values in a column (for a concrete year).
+    Works only for secondary observations, since it is based in the sheet's structure
 
     """
 
-    ROW_OF_YEARS = 0
-    ROW_START_COUNTRIES = 1
-    ROW_END_COUNTRIES = 81
-    ROW_OF_MEAN = 83
-    ROW_OF_SD = 85
-
-    def __init__(self, sheet):
+    def __init__(self, sheet, config):
         self._sheet = sheet
         self._means = {}
         self._std_dervis = {}
         self._mins = {}
         self._maxs = {}
+        self._config = config
 
     def get_mean(self, year):
         if not year in self._means:
@@ -260,7 +240,10 @@ class ExtraCalculator(object):
         column_index = self._detect_column_of_year(year)
         min_value = None
         max_value = None
-        for i in range(self.ROW_START_COUNTRIES, self.ROW_END_COUNTRIES + 1):
+        for i in range(self._config.getint("SECONDARY_OBSERVATIONS_PARSER",
+                                           "_EXTRA_ROW_START_COUNTRIES"),
+                       self._config.getint("SECONDARY_OBSERVATIONS_PARSER",
+                                           "_EXTRA_ROW_END_COUNTRIES") + 1):
             temp_value = self._sheet.row(i)[column_index].value
             if min is None or temp_value < min:
                 min_value = temp_value
@@ -271,12 +254,14 @@ class ExtraCalculator(object):
 
     def _calculate_mean(self, year):
         column = self._detect_column_of_year(year)
-        mean_value = self._sheet.row(self.ROW_OF_MEAN)[column]
+        mean_value = self._sheet.row(self._config.getint("SECONDARY_OBSERVATIONS_PARSER",
+                                                         "_EXTRA_ROW_OF_MEAN"))[column]
         self._means[year] = mean_value
 
     def _calculate_std_deriv(self, year):
         column = self._detect_column_of_year(year)
-        std_dev = self._sheet.row(self.ROW_OF_SD)[column]
+        std_dev = self._sheet.row(self._config.getint("SECONDARY_OBSERVATIONS_PARSER",
+                                                      "_EXTRA_ROW_OF_SD"))[column]
         self._std_dervis[year] = std_dev
 
 
@@ -289,10 +274,12 @@ class ExtraCalculator(object):
         """
 
         for i in range(1, self._sheet.ncols):
-            cell = self._sheet.row(self.ROW_OF_YEARS)[i]
+            cell = self._sheet.row(self._config.getint("SECONDARY_OBSERVATIONS_PARSER",
+                                                       "_EXTRA_ROW_OF_YEARS"))[i]
             if cell.value == year:
                 return i
 
-        raise RuntimeError(" Trying to find a year not contained in a sheet. Year " + year + ", sheet " + self._sheet.name)
+        raise RuntimeError(" Trying to find a year not contained in a sheet. Year " +
+                           year + ", sheet " + self._sheet.name)
 
 

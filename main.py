@@ -3,6 +3,7 @@ __date__ = '02/09/2014'
 
 import logging
 import xlrd
+import ConfigParser
 
 from application.wixFetcher.app.parsers.parser import Parser
 
@@ -16,15 +17,14 @@ def configure_log():
 def run():
     configure_log()
     log = logging.getLogger('wixfetcher')
-    print "E"
-    parser = Parser(log)
-    print "A"
+    config = ConfigParser.RawConfigParser()
+    config.read("configuration.ini")
+    parser = Parser(log=log,
+                    config=config)
     book = xlrd.open_workbook("data_file.xlsx")
-    print "YEYA"
     parser.run(book)
-    print "b"
     # extractor = Extractor(log)
-    # parser = ObservationsParser(log)
+    # parser = SecondaryObservationsParser(log)
     # try:
     #     data_sheets = extractor.get_data_sheets()
     #     for sheet in data_sheets:

@@ -14,20 +14,11 @@ class PrimaryIndicatorsAndGroupsParser(object):
 
     """
 
-    SUBINDEXES_ROW = 0
-    COMPONENTS_ROW = 1
-    FIRST_INDICATORS_ROW = 3
-    FIRST_INDICATORS_COLUMN = 1
-    SECONDARY_INDICATORS_ROW_BEGIN = 3
-    PRIMARY_INDICATORS_ROW_BEGIN = 9
 
 
-    COUNTRY_COVERAGE = 84  # TODO: check this and put in a config
-    INTERVAL_STARTS = 2007  # TODO: to config
-    INTERVAL_ENDS = 2013  # TODO: to config
-
-    def __init__(self, log, db_indicator, db_component, db_subindex, db_index):
+    def __init__(self, log, config, db_indicator, db_component, db_subindex, db_index):
         self._log = log
+        self._config = config
         self._db_indicator = db_indicator
         self._db_component = db_component
         self._db_subindex = db_subindex
@@ -108,21 +99,21 @@ class PrimaryIndicatorsAndGroupsParser(object):
 
     def _turn_located_indicator_into_model_indicator(self, located_ind):
         result = create_indicator(_type="Primary",
-                                  country_coverage=self.COUNTRY_COVERAGE,
+                                  country_coverage=self._config.getint("PRIMARY_INDICATORS_PARSER", "COUNTRY_COVERAGE"),
                                   provider_link=None,
                                   republish=True,  # We may have to check this
                                   high_low=located_ind.high_low,
                                   label=located_ind.name,
                                   comment=None,
                                   notation=None,  # For rdf. Unedeed at this point
-                                  interval_starts=self.INTERVAL_STARTS,
-                                  interval_ends=self.INTERVAL_ENDS,
+                                  interval_starts=self._config.getint("PRIMARY_INDICATORS_PARSER", "INTERVAL_STARTS"),
+                                  interval_ends=self._config.getint("PRIMARY_INDICATORS_PARSER", "INTERVAL_ENDS"),
                                   code=located_ind.code,
                                   organization=None)  # We will add it, if needed, through a method
         return result
 
     def _find_subindexes(self, sheet):
-        target_row = sheet.row(self.SUBINDEXES_ROW)
+        target_row = sheet.row(self._config.getint("PRIMARY_INDICATORS_PARSER", "SUBINDEXES_ROW"))
         tmp_subindex = None
         i = 1
         while i < sheet.ncols:
@@ -137,7 +128,7 @@ class PrimaryIndicatorsAndGroupsParser(object):
         self._subindexes.append(tmp_subindex)
 
     def _find_components(self, sheet):
-        target_row = sheet.row(self.COMPONENTS_ROW)
+        target_row = sheet.row(self._config.getint("PRIMARY_INDICATORS_PARSER", "COMPONENTS_ROW"))
         tmp_comp = None
         i = 0
         while i < sheet.ncols:
@@ -153,9 +144,9 @@ class PrimaryIndicatorsAndGroupsParser(object):
 
 
     def _find_indicators(self, sheet):
-        for irow in range(self.PRIMARY_INDICATORS_ROW_BEGIN, sheet.nrows):
+        for irow in range(self._config.getint("PRIMARY_INDICATORS_PARSER", "PRIMARY_INDICATORS_ROW_BEGIN"), sheet.nrows):
             row = sheet.row(irow)
-            icol = self.FIRST_INDICATORS_COLUMN
+            icol = self._config.getint("PRIMARY_INDICATORS_PARSER", "FIRST_INDICATORS_COLUMN")
             while icol < sheet.ncols:
                 cell = row[icol]
                 if self._not_empty_cell(cell):
@@ -177,7 +168,7 @@ class PrimaryIndicatorsAndGroupsParser(object):
                     weight = int(cell.value)
                     #end
                     end = icol
-                    if irow < self.PRIMARY_INDICATORS_ROW_BEGIN:
+                    if irow < self._config.getint("PRIMARY_INDICATORS_PARSER", "PRIMARY_INDICATORS_ROW_BEGIN"):
                         category = "Secondary"
                     else:
                         category = "Primary"
