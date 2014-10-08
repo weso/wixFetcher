@@ -61,11 +61,11 @@ class SecondaryObservationsParser(object):
         obs_count = 0
         i = 1
         area_code = self._get_country_code_by_name(country_name)
+        indicator_code, computation_type = self._obtain_indicator_code_and_computation_type_from_sheet_name(sheet_name)
         while i < sheet.ncols:
             obs_value = sheet.row(row)[i].value
             if not _is_empty_value(obs_value):
                 year_value = int(sheet.row(self._config.getint("SECONDARY_OBSERVATIONS_PARSER", "_YEAR_ROW"))[i].value)
-                indicator_code, computation_type = self._obtain_indicator_code_and_computation_type_from_sheet_name(sheet_name)
                 model_obs = self._create_observation(obs_value,
                                                      year_value,
                                                      country_name,
@@ -84,8 +84,8 @@ class SecondaryObservationsParser(object):
             i += 1
         return obs_count
 
-
-    def _create_observation(self, obs_value, year_value, country_name, indicator_code, computation_type):
+    @staticmethod
+    def _create_observation(obs_value, year_value, country_name, indicator_code, computation_type):
         """
         This method creates observation object from all the received parameters
 
@@ -96,7 +96,6 @@ class SecondaryObservationsParser(object):
         :param computation_type:
         :return: The observation created
         """
-
 
         observation = create_observation(issued=utc_now(),
                                          publisher=None,  # Uneeded at this point
@@ -180,6 +179,7 @@ class SecondaryObservationsParser(object):
         :param sheet_name: the name of the excell sheet, expected to be formed by the two wanted fields
         :return: two results. firts, indicator code. Then, type of computation
         """
+        sheet_name = sheet_name.replace(" ", "_").replace("-","_")
         array_data = sheet_name.split("_")
         indicator_code = array_data[0]
         for i in range(1, len(array_data) - 1):
@@ -201,7 +201,7 @@ class SecondaryObservationsParser(object):
         # if....
 
         #In case of not matching with any if...
-        self._log.error("Unknown computation time extracted from sheet name: " + raw_computation_type + ".")
+        self._log.warning("Unknown computation time extracted from sheet name: " + raw_computation_type + ".")
         return "Unknown"
 
     def _get_mean(self, observation):

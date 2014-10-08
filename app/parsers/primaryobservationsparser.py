@@ -35,7 +35,7 @@ class PrimaryObservationsParser(object):
                 country_name = self._parse_country_name(sheet, irow)
                 if country_name is None:
                     break  # It means we have ended countries
-                country_name += 1
+                country_count += 1
                 for icol in range(self._config.getint("PRIMARY_OBSERVATIONS_PARSER",
                                                       '_FIRST_DATA_COL_PRIMARY_OBSERVATIONS'),
                                   sheet.ncols):
