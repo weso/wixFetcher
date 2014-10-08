@@ -4,7 +4,7 @@ __date__ = '02/09/2014'
 import sys
 
 from webindex.domain.model.observation.observation import create_observation
-from .utils import initialize_country_dict, look_for_country_name_exception, build_label_for_observation
+from .utils import initialize_country_dict, look_for_country_name_exception, build_label_for_observation, _is_empty_value
 from utility.time import utc_now
 
 
@@ -27,16 +27,27 @@ class SecondaryObservationsParser(object):
         :param sheet: the Excel sheet object with all the data
         :return: None (for now)
         '''
-
+        self._log.info("Parsing sheet {}".format(sheet.name))
         self._extra_calculator = ExtraCalculator(sheet, self._config)
+        country_count = 0
+        obs_count = 0
         i = 1
         while i < sheet.nrows:
-            country_name = sheet.col(self._config.getint("SECONDARY_OBSERVATIONS_PARSER", "_COUNTRY_COLUMN"))[i].value
-            if country_name in [None, "", " "]:  # It means we have ended countries. Means and DVs come.
-                break
-
-            self._parse_country_data(sheet, i, country_name, sheet.name)
+            try:
+                country_name = sheet.col(self._config.getint("SECONDARY_OBSERVATIONS_PARSER", "_COUNTRY_COLUMN"))[i].value
+                if country_name in [None, "", " "]:  # It means we have ended countries. Means and DVs come.
+                    break
+                country_count += 1
+                obs_count += self._parse_country_data(sheet, i, country_name, sheet.name)
+            except ValueError as e:
+                self._log.error("ERROR parsing the row {} of primaty observations: {}."
+                                "Parsing process will continue in the next row".format(i + 1,
+                                                                                       str(e)))
             i += 1
+
+        self._log.info("Parsing sheet {} ended... {} countries, {} observations".format(sheet.name,
+                                                                                        country_count,
+                                                                                        obs_count))
 
     def _parse_country_data(self, sheet, row, country_name, sheet_name):
         """
@@ -45,13 +56,14 @@ class SecondaryObservationsParser(object):
 
         :param sheet: the Excel sheet object with all the data
         :param row: the Excel row in which are the indicator's values of a country for each year
-        :return: None (for now)
+        :return: number of observations parsed
         """
-
+        obs_count = 0
         i = 1
+        area_code = self._get_country_code_by_name(country_name)
         while i < sheet.ncols:
             obs_value = sheet.row(row)[i].value
-            if obs_value not in [None, "", " ", ".", "..", "...", "...."]:
+            if not _is_empty_value(obs_value):
                 year_value = int(sheet.row(self._config.getint("SECONDARY_OBSERVATIONS_PARSER", "_YEAR_ROW"))[i].value)
                 indicator_code, computation_type = self._obtain_indicator_code_and_computation_type_from_sheet_name(sheet_name)
                 model_obs = self._create_observation(obs_value,
@@ -59,11 +71,19 @@ class SecondaryObservationsParser(object):
                                                      country_name,
                                                      indicator_code,
                                                      computation_type)
+                obs_count += 1
                 self._db_observations.insert_observation(observation=model_obs,
-                                                         area_iso3_code=self._get_country_code_by_name(country_name),
+                                                         area_iso3_code=area_code,
                                                          indicator_code=indicator_code,
                                                          year_literal=year_value)
+            else:
+                self._log.info("Empty value in secondary observation: "
+                               "sheet {}, column {}, country {}.".format(sheet_name,
+                                                                         str(i + 1),
+                                                                         country_name))
             i += 1
+        return obs_count
+
 
     def _create_observation(self, obs_value, year_value, country_name, indicator_code, computation_type):
         """
@@ -100,8 +120,8 @@ class SecondaryObservationsParser(object):
         if country_name not in self._country_dict:
             possibly_correction = look_for_country_name_exception(country_name)
             if possibly_correction is None:
-                self._log.warning("Unrecognized country")
-                raise BaseException("Carefull here...")
+                self._log.error("Unrecognized country {}. Parsing process will continue anyway.")
+                raise ValueError("Unrecognized country: {}".format(country_name))
             else:
                 return self._get_country_code_by_name(possibly_correction)
         else:

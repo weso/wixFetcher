@@ -28,12 +28,24 @@ class PrimaryIndicatorsAndGroupsParser(object):
         self._indicators = []
 
     def parse_indicators_sheet(self, sheet):
+        """
+        Parse the entire sheet and persist primary indicators. It returns the total number of indicators found
+
+        :param sheet:
+        :return:
+        """
         self._find_subindexes(sheet)
         self._find_components(sheet)
         self._find_indicators(sheet)
 
+        self._log.info("Primary indicators detected: {}". format(len(self._indicators)))
+        self._log.info("Components detected: {}".format(len(self._components)))
+        self._log.info("Subindexes detected: {}".format(len(self._subindexes)))
+
         self._persist_indicators()
         self._persist_groups()
+
+        return len(self._indicators)
 
     def _persist_groups(self):
         """

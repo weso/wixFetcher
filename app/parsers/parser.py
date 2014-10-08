@@ -21,45 +21,62 @@ class Parser(object):
         self._config = config
 
     def run(self, book):
-        #Extracting sheets
-        extractor = Extractor(self._log, book)
-        sheets = extractor.get_data_sheets()
-        indicators_db = IndicatorRepository(self._config.get("CONNECTION", "MONGO_IP"))
-        components_db = ComponentRepository(self._config.get("CONNECTION", "MONGO_IP"))
-        subindexes_db = SubindexRepository(self._config.get("CONNECTION", "MONGO_IP"))
-        indexes_db = IndexRepository(self._config.get("CONNECTION", "MONGO_IP"))
-        observations_db = ObservationRepository(self._config.get("CONNECTION", "MONGO_IP"))
-        areas_db = AreaRepository(self._config.get("CONNECTION", "MONGO_IP"))
+        self._log.info("Parsing process started......")
+        try:
+            self._log.info("Connecting with databases")
+            #Extracting sheets
+            extractor = Extractor(self._log, book)
+            sheets = extractor.get_data_sheets()
+            indicators_db = IndicatorRepository(self._config.get("CONNECTION", "MONGO_IP"))
+            components_db = ComponentRepository(self._config.get("CONNECTION", "MONGO_IP"))
+            subindexes_db = SubindexRepository(self._config.get("CONNECTION", "MONGO_IP"))
+            indexes_db = IndexRepository(self._config.get("CONNECTION", "MONGO_IP"))
+            observations_db = ObservationRepository(self._config.get("CONNECTION", "MONGO_IP"))
+            areas_db = AreaRepository(self._config.get("CONNECTION", "MONGO_IP"))
+
+            self._log.info("Successfully connected to databases")
 
 
-        # Parsign indicatros
-        secondary_indicators_parser = SecondaryIndicatorsParser(log=self._log,
-                                                                config=self._config,
-                                                                db=indicators_db)
-        secondary_indicators_parser.\
-            parse_indicators_sheet(sheets[self._config.getint("PARSER", "_SECONDARY_INDICATOR_METADATA_SHEET")])
+            # Parsign indicatros
+            self._log.info("Parsing secondary indicators... ")
+            secondary_indicators_parser = SecondaryIndicatorsParser(log=self._log,
+                                                                    config=self._config,
+                                                                    db=indicators_db)
+            secondary_indicators_parser.\
+                parse_indicators_sheet(sheets[self._config.getint("PARSER", "_SECONDARY_INDICATOR_METADATA_SHEET")])
 
-        primary_indicators_parser = PrimaryIndicatorsAndGroupsParser(log=self._log,
-                                                                     config=self._config,
-                                                                     db_indicator=indicators_db,
-                                                                     db_component=components_db,
-                                                                     db_subindex=subindexes_db,
-                                                                     db_index=indexes_db)
-        primary_indicators_parser.\
-            parse_indicators_sheet(sheets[self._config.getint("PARSER", "_PRIMARY_INDICATOR_METADATA_SHEET")])
+            #TODO: CONTINUE HERE WITH LOGS
 
-        # Parsing observations
+            primary_indicators_parser = PrimaryIndicatorsAndGroupsParser(log=self._log,
+                                                                         config=self._config,
+                                                                         db_indicator=indicators_db,
+                                                                         db_component=components_db,
+                                                                         db_subindex=subindexes_db,
+                                                                         db_index=indexes_db)
+            primary_indicators_parser.\
+                parse_indicators_sheet(sheets[self._config.getint("PARSER", "_PRIMARY_INDICATOR_METADATA_SHEET")])
 
-        secondary_observations_parser = SecondaryObservationsParser(log=self._log,
+            # Parsing observations
+
+            secondary_observations_parser = SecondaryObservationsParser(log=self._log,
+                                                                        config=self._config,
+                                                                        db_observations=observations_db,
+                                                                        db_countries=areas_db)
+            sec_indicators_count = 0
+            for i in range(self._config.getint("PARSER", "_FIRST_OBSERVATIONS_SHEET"), len(sheets) - 2):
+                secondary_observations_parser.parse_data_sheet(sheets[i])
+                sec_indicators_count += 1
+            self._log.info("Secondary indicatros with observations: {}".format(sec_indicators_count))
+
+            primary_observations_parser = PrimaryObservationsParser(log=self._log,
                                                                     config=self._config,
                                                                     db_observations=observations_db,
                                                                     db_countries=areas_db)
-        for i in range(self._config.getint("PARSER", "_FIRST_OBSERVATIONS_SHEET"), len(sheets) - 2):
-            secondary_observations_parser.parse_data_sheet(sheets[i])
+            primary_observations_parser.parse_data_sheet(sheets[len(sheets) - 2])
 
-        primary_observations_parser = PrimaryObservationsParser(log=self._log,
-                                                                config=self._config,
-                                                                db_observations=observations_db,
-                                                                db_countries=areas_db)
-        primary_observations_parser.parse_data_sheet(sheets[len(sheets) - 2])
+            self._log.info("Parsing process ended......")
+
+        except BaseException as e:
+            print "Parsing process finalized abruptly. Check logs"  # Put this print in some other place
+            self._log.error("Parsing process finalized abruptly. Cause: {}".format(str(e)))
 

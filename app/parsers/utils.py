@@ -37,3 +37,9 @@ def look_for_country_name_exception(original):
 
 def build_label_for_observation(indicator_code, country_name, year_value, status):
     return indicator_code + " " + status + " in " + country_name + " during " + str(year_value)
+
+
+def _is_empty_value(value):
+    if value in [None, "", " ", ".", "..", "...", "...."]:
+        return True
+    return None
