@@ -21,16 +21,24 @@ class SecondaryIndicatorsParser(object):
         self._subindexes = {}
 
     def parse_indicators_sheet(self, sheet):
+        """
+        Do the parsing process, persist the indicatros and return the number of indicator found.
+
+        :param sheet:
+        :return:
+        """
         for i in range(self._config.getint("SECONDARY_INDICATORS_PARSER", "FIRST_DATA_ROW"),
                        self._config.getint("SECONDARY_INDICATORS_PARSER", "LAST_DATA_ROW") + 1):
             self._parse_indicator_row(sheet.row(i))
 
+        self._log.info("Secondary indicators detected: {}".format(len(self._indicators)))
         for excell_ind in self._indicators:
             model_ind = self._turn_excell_ind_into_model_ind(excell_ind)
             self._db.insert_indicator(model_ind,
                                       component_name=excell_ind.component.name,
                                       subindex_name=excell_ind.component.subindex.name,
                                       index_name="INDEX")
+        return len(self._indicators)
 
 
     def _turn_excell_ind_into_model_ind(self, excell_ind):
