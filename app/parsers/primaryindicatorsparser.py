@@ -230,7 +230,7 @@ class PrimaryIndicatorsAndGroupsParser(object):
 
     def _match_component_with_subindex(self, component):
         for subindex in self._subindexes:
-            if component.beg >= subindex.beg and component.end <= component.end:
+            if component.beg >= subindex.beg and component.end <= subindex.end:
                 return subindex.name
         return "FAILURE"
 
