@@ -73,10 +73,10 @@ class SecondaryIndicatorsParser(object):
 
 
     def _process_components_and_subindexes(self, indicator, row):
-        subindex_name = self._normalize_grouped_entity_name(row[self._config.getint("SECONDARY_INDICATORS_PARSER",
+        subindex_name = self._normalize_subindex_name(row[self._config.getint("SECONDARY_INDICATORS_PARSER",
                                                                                     "SUBINDEX")].value)
-        component_name = self._normalize_grouped_entity_name(row[self._config.getint("SECONDARY_INDICATORS_PARSER",
-                                                                                     "COMPONENT")].value)
+        component_name = self._normalize_component_name(row[self._config.getint("SECONDARY_INDICATORS_PARSER",
+                                                                                "COMPONENT")].value)
 
         subindex = None
         component = None
@@ -103,15 +103,35 @@ class SecondaryIndicatorsParser(object):
 
 
     @staticmethod
-    def _normalize_grouped_entity_name(original):
+    def _normalize_component_name(original):
         """
-        It expects the name of a component or a subindex and return the same name capitalized.
+        It expects the name of a component and return the same name capitalized.
+        Also, if it contains the character &, it will change it for "and".
+        It will also erase the word "Relevant" if it appears
         This method has been taken apart thinking that this normalization may change.
 
         :param original:
         :return:
         """
-        return original.capitalize()
+
+        return original.replace("Relevant ", "")\
+            .replace("relevant ", "")\
+            .replace("&", "and")\
+            .capitalize()
+
+    @staticmethod
+    def _normalize_subindex_name(original):
+        """
+        It expects the name of a subindex and return it capitalized.
+        Also, if it finds the word "and" it will replace it by the char "&".
+        This method has been taken apart thinking that this normalization may change.
+
+        :param original:
+        :return:
+        """
+        return original.replace("and", "&")\
+            .replace("And", "&")\
+            .capitalize()
 
     def _look_for_high_low(self, row):
         cell = row[self._config.getint("SECONDARY_INDICATORS_PARSER", "HIGH_LOW")]

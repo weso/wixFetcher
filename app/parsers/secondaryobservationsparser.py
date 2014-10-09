@@ -179,13 +179,29 @@ class SecondaryObservationsParser(object):
         :param sheet_name: the name of the excell sheet, expected to be formed by the two wanted fields
         :return: two results. firts, indicator code. Then, type of computation
         """
-        sheet_name = sheet_name.replace(" ", "_").replace("-","_")
-        array_data = sheet_name.split("_")
+
+        target_name = sheet_name.replace(" ", "_").replace("-", "_")
+        array_data = target_name.split("_")
+
+        # At this point, we had an array that is suposed to contain in its last position
+        # the tyoe of computation and, in the rest of positions, tokens that should be
+        # concatenated with "_" to form the code of an indicator. If we receive an irregular
+        # sheet name and no computation type can be detected, we will assume that the last
+        # field also belongs to the indicator name and no computation type has been provided.
+        # This may become a bug in the future... no problem with regular data, but no possible
+        # safe assumptions with irregular data. At this point, this is the assumption that
+        # works.
+
+        computation_type = self._normalize_computation_type(array_data[len(array_data) - 1])
         indicator_code = array_data[0]
-        for i in range(1, len(array_data) - 1):
+        last_position_indicator_code = len(array_data) - 2
+        if computation_type is None:
+            last_position_indicator_code += 1
+        for i in range(1, last_position_indicator_code + 1):
             indicator_code += "_" + array_data[i]
-        raw_computation_type = array_data[len(array_data) - 1]
-        return indicator_code, self._normalize_computation_type(raw_computation_type)
+        if computation_type is None:
+            computation_type = "raw"
+        return indicator_code, computation_type
 
     def _normalize_computation_type(self, raw_computation_type):
         """
@@ -197,12 +213,12 @@ class SecondaryObservationsParser(object):
         """
 
         if raw_computation_type in ["Imputed", "imputed"]:
-            return "raw"  #TODO: ensure this is the correct type to return.... not really sure about this.
+            return "raw"  # TODO: ensure this is the correct type to return.... not really sure about this.
         # if....
 
         #In case of not matching with any if...
-        self._log.warning("Unknown computation time extracted from sheet name: " + raw_computation_type + ".")
-        return "Unknown"
+        self._log.warning("Unknown computation type extracted from sheet name: " + raw_computation_type + ".")
+        return None  # This is temporally. For now, it works and puts a warning in the log.
 
     def _get_mean(self, observation):
         return self._extra_calculator.get_mean(observation.ref_year)
