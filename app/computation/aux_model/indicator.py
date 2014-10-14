@@ -3,14 +3,14 @@ __author__ = 'Miguel'
 
 class Indicator(object):
 
-    def __init__(self, code=None, label=None, _type=None, high_low=None, weight=None, mean=None, stdev=None):
+    def __init__(self, code=None, label=None, _type=None, high_low=None, weight=None):
         self._code = code
         self._label = label
         self._type = _type
         self._high_low = high_low
         self._weight = weight
-        self._mean = mean
-        self._stdev = stdev
+        self._means = dict()
+        self._stdevs = dict()
 
     @property
     def code(self):
@@ -53,17 +53,17 @@ class Indicator(object):
         self._weight = value
 
     @property
-    def mean(self):
-        return self._mean
+    def means(self):
+        return self._means
 
-    @mean.setter
-    def mean(self, value):
-        self._mean = value
+    @means.setter
+    def means(self, value):
+        self._means = value
 
     @property
-    def stdev(self):
-        return self._stdev
+    def stdevs(self):
+        return self._stdevs
 
-    @stdev.setter
-    def stdev(self, value):
-        self._stdev = value
+    @stdevs.setter
+    def stdevs(self, value):
+        self._stdevs = value

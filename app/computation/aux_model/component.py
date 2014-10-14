@@ -7,6 +7,7 @@ class Component(object):
         self._label = label
         self._weight = weight
         self._indicators = []
+        self._grouped_values = dict()
 
     def add_indicator(self, indicator):
         self._indicators.append(indicator)
@@ -30,3 +31,7 @@ class Component(object):
     @property
     def indicators(self):
         return self._indicators
+
+    @property
+    def grouped_values(self):
+        return self._grouped_values

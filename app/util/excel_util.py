@@ -8,7 +8,7 @@ class ExcelUtil(object):
 
     @staticmethod
     def is_empty_cell(value):
-        if value in [None, "", " "]:
+        if value in [None, "", " ", "..", "...", u'\u2026']:
             return True
         return False
 
@@ -19,6 +19,14 @@ class ExcelUtil(object):
                 not ExcelUtil.is_empty_cell(sheet.row(row_number)[col_number + num_cols].value):
             num_cols += 1
         return num_cols
+
+    @staticmethod
+    def get_nrows_from_cell(sheet, col_number, row_number):
+        num_rows = 0
+        while (num_rows + row_number) < sheet.nrows and \
+                not ExcelUtil.is_empty_cell(sheet.row(row_number + num_rows)[col_number].value):
+            num_rows += 1
+        return num_rows
 
     @staticmethod
     def is_same_value(value1, value2):
