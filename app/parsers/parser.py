@@ -44,7 +44,8 @@ class Parser(object):
                                                                     config=self._config,
                                                                     db=indicators_db)
             secondary_indicators_parser.\
-                parse_indicators_sheet(sheets[self._config.getint("PARSER", "_SECONDARY_INDICATOR_METADATA_SHEET")])
+                parse_indicators_sheet(sheets[self._config.getint("PARSER", "_SECONDARY_INDICATOR_METADATA_SHEET")],
+                                       sheets[self._config.getint("PARSER", "_PRIMARY_INDICATOR_METADATA_SHEET")])
             self._log.info("Secondary indicators parsed... ")
 
             self._log.info("Parsing primary indicators and groups... ")

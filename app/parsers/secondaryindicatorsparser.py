@@ -20,9 +20,9 @@ class SecondaryIndicatorsParser(object):
         self._components = {}
         self._subindexes = {}
 
-    def parse_indicators_sheet(self, sheet):
+    def parse_indicators_sheet(self, sheet, secondary_weights_sheet):
         """
-        Do the parsing process, persist the indicatros and return the number of indicator found.
+        Do the parsing process, persist the indicators and return the number of indicator found.
 
         :param sheet:
         :return:
@@ -37,8 +37,64 @@ class SecondaryIndicatorsParser(object):
             self._db.insert_indicator(model_ind,
                                       component_name=excell_ind.component.name,
                                       subindex_name=excell_ind.component.subindex.name,
-                                      index_name="INDEX")
+                                      index_name="INDEX",
+                                      weight=self._look_for_indicator_weight(excell_ind.code,
+                                                                             secondary_weights_sheet))
         return len(self._indicators)
+
+    def _look_for_indicator_weight(self, indicator_code, secondary_weights_sheet):
+        """
+        It looks in the secondary_weights_sheet the indicator_code and returns its associated weight
+
+
+        :param indicator_code:
+        :param secondary_weights_sheet:
+        :return:
+        """
+        code_positions = self._calculate_code_positions_in_weights_sheet(secondary_weights_sheet)
+        for irow in range(self._config.getint("PRIMARY_INDICATORS_PARSER", "FIRST_INDICATORS_COLUMN"),
+                       self._config.getint("PRIMARY_INDICATORS_PARSER", "PRIMARY_INDICATORS_ROW_BEGIN")):
+            for icol in code_positions:
+                if self._normalize_code_for_weight_search(secondary_weights_sheet.row(irow)[icol].value) ==\
+                        self._normalize_code_for_weight_search(indicator_code):
+                    print "Encontre para", indicator_code, "!!"
+                    return int(secondary_weights_sheet.row(irow)[icol + 3].value)  # 3 is the distance between code and weight
+        self._log.warning("Unable to find weight for secondary indicator {}. We will assume weight 1".
+                          format(indicator_code))
+        return 1
+
+
+    @staticmethod
+    def _normalize_code_for_weight_search(indicator_code):
+        """
+        Some indicators codes are not coherent between sheets: different separators or even absence of separators.
+        We should erase all posible separators and to upper every string in order to look for coincidences.
+
+        :param indicator_code:
+        :return:
+        """
+        return indicator_code.upper().replace("_", "").replace("-", "").replace(" ", "")
+        pass
+
+    def _calculate_code_positions_in_weights_sheet(self, secondary_weights_sheet):
+        """
+        It returns an array containing the index of the columns in which indicators codes
+        can be found
+        :return:
+        """
+        first_pos = self._config.getint("PRIMARY_INDICATORS_PARSER", "FIRST_INDICATORS_COLUMN")
+        result = [first_pos]
+        i = first_pos + 4  # We are adding four because this is the number of columns of separation between codes
+        while i < secondary_weights_sheet.ncols:
+            content = secondary_weights_sheet.row(self._config.getint("PRIMARY_INDICATORS_PARSER",
+                                                                      "TITLES_ROW"))[i].value
+            if content.upper().replace(" ", "") == "CODE":
+                result.append(i)
+            else:
+                break
+            i += 4
+
+        return result
 
 
     def _turn_excell_ind_into_model_ind(self, excell_ind):

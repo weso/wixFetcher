@@ -1,7 +1,6 @@
 __author__ = 'Miguel'
 __date__ = '02/09/2014'
 
-import sys
 
 from webindex.domain.model.observation.observation import create_observation
 from .utils import initialize_country_dict, look_for_country_name_exception, build_label_for_observation, _is_empty_value
@@ -83,6 +82,9 @@ class SecondaryObservationsParser(object):
                                                                          country_name))
             i += 1
         return obs_count
+
+
+
 
     @staticmethod
     def _create_observation(obs_value, year_value, country_name, indicator_code, computation_type):
