@@ -4,6 +4,7 @@ from webindex.domain.model.indicator.indicator import create_indicator
 from webindex.domain.model.component import create_component
 from webindex.domain.model.subindex import create_sub_index
 from webindex.domain.model.index import create_index
+from .utils import build_indicator_uri, normalize_component_code_for_uri, normalize_subindex_code_for_uri
 from utility.time import utc_now
 
 
@@ -56,15 +57,20 @@ class PrimaryIndicatorsAndGroupsParser(object):
         for comp in self._components:
             model_comp = self._turn_located_comp_into_model_comp(comp)
             self._db_component.insert_component(model_comp,
+                                                component_uri=build_indicator_uri(self._config,
+                                                                                  normalize_component_code_for_uri(comp.code)),
                                                 subindex_name=self._match_component_with_subindex(comp),
                                                 index_name="INDEX")
 
         for subin in self._subindexes:
             model_subin = self._turn_located_subin_into_model_subin(subin)
             self._db_subindex.insert_subindex(model_subin,
+                                              subindex_uri=build_indicator_uri(self._config,
+                                                                               normalize_subindex_code_for_uri(subin.code)),
                                               index_name="INDEX")
 
-        self._db_index.insert_index(self._create_model_index_object())
+        self._db_index.insert_index(self._create_model_index_object(),
+                                    index_uri=build_indicator_uri(self._config, "INDEX"))
 
 
 
@@ -103,6 +109,7 @@ class PrimaryIndicatorsAndGroupsParser(object):
         for ind in self._indicators:
             model_indicator = self._turn_located_indicator_into_model_indicator(ind)
             self._db_indicator.insert_indicator(model_indicator,
+                                                indicator_uri=build_indicator_uri(self._config, ind.code),
                                                 component_name=self._match_ind_with_component(ind),
                                                 subindex_name=self._match_ind_with_subindex(ind),
                                                 index_name="INDEX")

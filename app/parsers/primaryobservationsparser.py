@@ -1,8 +1,11 @@
 __author__ = 'Dani'
 
 
-from .utils import initialize_country_dict, look_for_country_name_exception, build_label_for_observation, _is_empty_value
+from .utils import initialize_country_dict, look_for_country_name_exception, \
+    build_label_for_observation, _is_empty_value, build_observation_uri, \
+    deduce_previous_value_and_year, normalize_code_for_uri, initialize_indicator_dict
 from webindex.domain.model.observation.observation import create_observation
+from webindex.domain.model.observation.year import Year
 from utility.time import utc_now
 
 
@@ -10,11 +13,12 @@ class PrimaryObservationsParser(object):
 
 
 
-    def __init__(self, log, db_observations, db_countries, config):
+    def __init__(self, log, db_observations, db_countries, db_indicators, config):
         self._log = log
         self._config = config
         self._db_observations = db_observations
         self._country_dict = initialize_country_dict(db_countries)  # It will contain a dictionary of [name] --> [code]
+        self._indicator_dict = initialize_indicator_dict(db_indicators)
 
 
     def parse_data_sheet(self, sheet):
@@ -36,6 +40,7 @@ class PrimaryObservationsParser(object):
                 if country_name is None:
                     break  # It means we have ended countries
                 country_count += 1
+                observations_per_country = []
                 for icol in range(self._config.getint("PRIMARY_OBSERVATIONS_PARSER",
                                                       '_FIRST_DATA_COL_PRIMARY_OBSERVATIONS'),
                                   sheet.ncols):
@@ -49,11 +54,21 @@ class PrimaryObservationsParser(object):
                                           .format(irow + 1,
                                                   icol + 1))
                     else:
-                        obs_count +=1
+                        obs_count += 1
+                        previous_value, previous_year = deduce_previous_value_and_year(observations_per_country, int(model_obs.ref_year.value))
                         self._db_observations.insert_observation(observation=model_obs,
+                                                                 observation_uri=build_observation_uri(config=self._config,
+                                                                                                       ind_code=indicator_year_by_column_dict[icol].indicator,
+                                                                                                       iso3_code=self._get_country_code_by_name(country_name),
+                                                                                                       year=model_obs.ref_year.value),
                                                                  area_iso3_code=self._get_country_code_by_name(country_name),
+                                                                 area_name=self._get_std_country_name(country_name),
                                                                  indicator_code=indicator_year_by_column_dict[icol].indicator,
-                                                                 year_literal=indicator_year_by_column_dict[icol].year)
+                                                                 indicator_name=self._get_indicator_name(indicator_year_by_column_dict[icol].indicator),
+                                                                 previous_value=previous_value,
+                                                                 previous_year=previous_year
+                                                                 )
+                        observations_per_country.append(model_obs)
             except ValueError as e:
                 self._log.error("ERROR while parsing row {} of sheet {}: {}. "
                                 "Parsing process will continue in the next row.".format(irow + 1,
@@ -97,20 +112,23 @@ class PrimaryObservationsParser(object):
         if _is_empty_value(value):
             return None
         else:
-            return create_observation(issued=utc_now(),
-                                      publisher="Webindex",
-                                      data_set=None,
-                                      obs_type="raw",
-                                      label=build_label_for_observation(indicator_year_dict[col].indicator,
-                                                                        country_name,
-                                                                        indicator_year_dict[col].year,
-                                                                        "raw"),
-                                      status="raw",
-                                      ref_indicator=None,
-                                      value=sheet.row(row)[col].value,
-                                      ref_area=None,
-                                      ref_year=None
-                                      )
+            result = create_observation(issued=utc_now(),
+                                        publisher="Webindex",
+                                        data_set=None,
+                                        obs_type="raw",
+                                        label=build_label_for_observation(indicator_year_dict[col].indicator,
+                                                                          country_name,
+                                                                          indicator_year_dict[col].year,
+                                                                          "raw"),
+                                        status="raw",
+                                        ref_indicator=None,
+                                        value=sheet.row(row)[col].value,
+                                        ref_area=None,
+                                        ref_year=None
+                                        )
+            result.ref_year = Year(indicator_year_dict[col].year)
+            return result
+
 
     def _get_country_code_by_name(self, country_name):
         if country_name not in self._country_dict:
@@ -122,6 +140,42 @@ class PrimaryObservationsParser(object):
                 return self._get_country_code_by_name(possibly_correction)
         else:
             return self._country_dict[country_name]
+
+
+    def _get_std_country_name(self, country_name):
+        """
+        It receives a country name and return the official country_name, recognizing possible
+        variations if needed.
+
+        :param country_name:
+        :return:
+        """
+        if country_name in self._country_dict:
+            return country_name
+        else:
+            possible_correction = look_for_country_name_exception(country_name)
+            if possible_correction is None:
+                self._log.error("Unrecognized country {}. Parsing process will continue anyway.".format(country_name))
+                raise ValueError("Unrecognized country: {}".format(country_name))
+            else:
+                return self._get_std_country_name(possible_correction)
+
+
+    def _get_indicator_name(self, indicator_code):
+        """
+        It receives the code of an indicator and return its name
+
+        :param indicator_code:
+        :return:
+        """
+        propper_indicator_code = normalize_code_for_uri(indicator_code)
+        if propper_indicator_code in self._indicator_dict:
+            return self._indicator_dict[indicator_code]
+        else:
+            self._log.error("Unrecognized indicator code: {}. Parsing process will continue anyway. ".format(indicator_code))
+            raise ValueError("Unrecognized indicator code : {}".format(indicator_code))
+
+
 
 
     @staticmethod

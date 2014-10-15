@@ -44,8 +44,10 @@ class Parser(object):
                                                                     config=self._config,
                                                                     db=indicators_db)
             secondary_indicators_parser.\
-                parse_indicators_sheet(sheets[self._config.getint("PARSER", "_SECONDARY_INDICATOR_METADATA_SHEET")],
-                                       sheets[self._config.getint("PARSER", "_PRIMARY_INDICATOR_METADATA_SHEET")])
+                parse_indicators_sheet(sheets[self._config.getint("PARSER",
+                                                                  "_SECONDARY_INDICATOR_METADATA_SHEET")],
+                                       sheets[self._config.getint("PARSER",
+                                                                  "_PRIMARY_INDICATOR_METADATA_SHEET")])
             self._log.info("Secondary indicators parsed... ")
 
             self._log.info("Parsing primary indicators and groups... ")
@@ -56,7 +58,8 @@ class Parser(object):
                                                                          db_subindex=subindexes_db,
                                                                          db_index=indexes_db)
             primary_indicators_parser.\
-                parse_indicators_sheet(sheets[self._config.getint("PARSER", "_PRIMARY_INDICATOR_METADATA_SHEET")])
+                parse_indicators_sheet(sheets[self._config.getint("PARSER",
+                                                                  "_PRIMARY_INDICATOR_METADATA_SHEET")])
             self._log.info("Primary indicators and groups parsed... ")
 
             # Parsing observations
@@ -65,18 +68,21 @@ class Parser(object):
             secondary_observations_parser = SecondaryObservationsParser(log=self._log,
                                                                         config=self._config,
                                                                         db_observations=observations_db,
-                                                                        db_countries=areas_db)
+                                                                        db_countries=areas_db,
+                                                                        db_indicators=indicators_db)
             sec_indicators_count = 0
             for i in range(self._config.getint("PARSER", "_FIRST_OBSERVATIONS_SHEET"), len(sheets) - 2):
                 secondary_observations_parser.parse_data_sheet(sheets[i])
                 sec_indicators_count += 1
+
             self._log.info("Secondary indicators with observations: {}".format(sec_indicators_count))
             self._log.info("Secondary observations parsed... ")
             self._log.info("Parsing primary observations... ")
             primary_observations_parser = PrimaryObservationsParser(log=self._log,
                                                                     config=self._config,
                                                                     db_observations=observations_db,
-                                                                    db_countries=areas_db)
+                                                                    db_countries=areas_db,
+                                                                    db_indicators=indicators_db)
             primary_observations_parser.parse_data_sheet(sheets[len(sheets) - 2])
             self._log.info("Primary observations parsed... ")
             self._log.info("Parsing process ended......")

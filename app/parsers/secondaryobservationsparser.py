@@ -3,7 +3,11 @@ __date__ = '02/09/2014'
 
 
 from webindex.domain.model.observation.observation import create_observation
-from .utils import initialize_country_dict, look_for_country_name_exception, build_label_for_observation, _is_empty_value
+from webindex.domain.model.observation.year import Year
+from .utils import initialize_country_dict, look_for_country_name_exception,\
+    build_label_for_observation, _is_empty_value,\
+    build_observation_uri, initialize_indicator_dict, normalize_code_for_uri, \
+    deduce_previous_value_and_year
 from utility.time import utc_now
 
 
@@ -11,12 +15,13 @@ class SecondaryObservationsParser(object):
 
 
 
-    def __init__(self, log, db_observations, db_countries, config):
+    def __init__(self, log, db_observations, db_countries, db_indicators, config):
         self._log = log
         self._config = config
         self._extra_calculator = None
         self._db_observations = db_observations
         self._country_dict = initialize_country_dict(db_countries)  # It will contain a dictionary of [name] --> [code]
+        self._indicator_dict = initialize_indicator_dict(db_indicators)
 
 
     def parse_data_sheet(self, sheet):
@@ -61,6 +66,7 @@ class SecondaryObservationsParser(object):
         i = 1
         area_code = self._get_country_code_by_name(country_name)
         indicator_code, computation_type = self._obtain_indicator_code_and_computation_type_from_sheet_name(sheet_name)
+        country_parsed_obs = []
         while i < sheet.ncols:
             obs_value = sheet.row(row)[i].value
             if not _is_empty_value(obs_value):
@@ -71,10 +77,19 @@ class SecondaryObservationsParser(object):
                                                      indicator_code,
                                                      computation_type)
                 obs_count += 1
+                country_parsed_obs.append(model_obs)
+                previous_value, previous_year = deduce_previous_value_and_year(country_parsed_obs, int(year_value))
                 self._db_observations.insert_observation(observation=model_obs,
+                                                         observation_uri=build_observation_uri(config=self._config,
+                                                                                               ind_code=indicator_code,
+                                                                                               iso3_code=area_code,
+                                                                                               year=year_value),
                                                          area_iso3_code=area_code,
+                                                         area_name=self._get_std_country_name(country_name),
                                                          indicator_code=indicator_code,
-                                                         year_literal=year_value)
+                                                         indicator_name=self._get_indicator_name(indicator_code),
+                                                         previous_value=previous_value,
+                                                         year_of_previous_value=previous_year)
             else:
                 self._log.info("Empty value in secondary observation: "
                                "sheet {}, column {}, country {}.".format(sheet_name,
@@ -82,7 +97,6 @@ class SecondaryObservationsParser(object):
                                                                          country_name))
             i += 1
         return obs_count
-
 
 
 
@@ -112,7 +126,7 @@ class SecondaryObservationsParser(object):
                                          value=obs_value,
                                          ref_area=None,
                                          ref_year=None)
-
+        observation._ref_year = Year(year_value)
         # self._add_propper_computation_to_observation(observation, computation_type)
         return observation
 
@@ -121,12 +135,45 @@ class SecondaryObservationsParser(object):
         if country_name not in self._country_dict:
             possibly_correction = look_for_country_name_exception(country_name)
             if possibly_correction is None:
-                self._log.error("Unrecognized country {}. Parsing process will continue anyway.")
+                self._log.error("Unrecognized country {}. Parsing process will continue anyway.".format(country_name))
                 raise ValueError("Unrecognized country: {}".format(country_name))
             else:
                 return self._get_country_code_by_name(possibly_correction)
         else:
             return self._country_dict[country_name]
+
+    def _get_std_country_name(self, country_name):
+        """
+        It receives a country name and return the official country_name, recognizing possible
+        variations if needed.
+
+        :param country_name:
+        :return:
+        """
+        if country_name in self._country_dict:
+            return country_name
+        else:
+            possible_correction = look_for_country_name_exception(country_name)
+            if possible_correction is None:
+                self._log.error("Unrecognized country {}. Parsing process will continue anyway.".format(country_name))
+                raise ValueError("Unrecognized country: {}".format(country_name))
+            else:
+                return self._get_std_country_name(possible_correction)
+
+    def _get_indicator_name(self, indicator_code):
+        """
+        It receives the code of an indicator and return its name
+
+        :param indicator_code:
+        :return:
+        """
+        propper_indicator_code = normalize_code_for_uri(indicator_code)
+        if propper_indicator_code in self._indicator_dict:
+            return self._indicator_dict[indicator_code]
+        else:
+            self._log.error("Unrecognized indicator code: {}. Parsing process will continue anyway. ".format(indicator_code))
+            raise ValueError("Unrecognized indicator code : {}".format(indicator_code))
+
 
     @staticmethod
     def _look_for_country_name_exception(original):
