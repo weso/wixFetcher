@@ -10,7 +10,7 @@ def initialize_country_dict(db_countries):
     :return:
     """
     result = {}
-    country_dicts = db_countries.find_countries()['data']
+    country_dicts = db_countries.find_countries(order=None)['data']
     for a_dict in country_dicts:
         result[a_dict['name']] = a_dict['iso3']
     return result
@@ -25,9 +25,10 @@ def initialize_indicator_dict(db_indicators):
     :return:
     """
     result = {}
-    indicator_dicts = db_indicators.find_indicators()['data']
+    indicator_dicts = db_indicators.find_indicators_indicators()['data']
     for a_dict in indicator_dicts:
         result[a_dict['indicator']] = a_dict['name']
+    return result
 
 
 
@@ -82,7 +83,7 @@ def build_observation_uri(config, ind_code, iso3_code, year):
 def normalize_code_for_uri(original):
     result = original.upper().replace(" ", "_").replace("-", "_")
     while "__" in result:
-        result.replace("__", "_")
+        result = result.replace("__", "_")
     return result
 
 
@@ -98,13 +99,14 @@ def normalize_subindex_code_for_uri(original):
 
 
 def deduce_previous_value_and_year(observations, year_target):
-    #TODO CONTINUE HERE
     """
     It receives an array of observations and a target year. and returns the value and the year of the
     observation which date is lower but as near as possible to "year_value". In case there are no older
     observetions, it returns a double None
 
+
     :param observation:
+    :param year_target
     :return:
     """
     result_value = None
@@ -121,5 +123,7 @@ def deduce_previous_value_and_year(observations, year_target):
             else:
                 pass
     return result_value, result_year
+
+
 
 

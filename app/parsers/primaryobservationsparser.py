@@ -13,12 +13,13 @@ class PrimaryObservationsParser(object):
 
 
 
-    def __init__(self, log, db_observations, db_countries, db_indicators, config):
+    def __init__(self, log, db_observations, db_countries, db_indicators, db_visualizations, config):
         self._log = log
         self._config = config
         self._db_observations = db_observations
         self._country_dict = initialize_country_dict(db_countries)  # It will contain a dictionary of [name] --> [code]
         self._indicator_dict = initialize_indicator_dict(db_indicators)
+        self._db_visualizations = db_visualizations
 
 
     def parse_data_sheet(self, sheet):
@@ -29,6 +30,7 @@ class PrimaryObservationsParser(object):
         :param sheet: the excell sheet object with all the data
         :return:
         """
+        #  TODO: REFACTOR THIS TERRORIFIC METHOD
         self._log.info("Parsing sheet {}...".format(sheet.name))
         country_count = 0
         obs_count = 0
@@ -40,7 +42,7 @@ class PrimaryObservationsParser(object):
                 if country_name is None:
                     break  # It means we have ended countries
                 country_count += 1
-                observations_per_country = []
+                observations_per_country_dict = {}
                 for icol in range(self._config.getint("PRIMARY_OBSERVATIONS_PARSER",
                                                       '_FIRST_DATA_COL_PRIMARY_OBSERVATIONS'),
                                   sheet.ncols):
@@ -54,8 +56,11 @@ class PrimaryObservationsParser(object):
                                           .format(irow + 1,
                                                   icol + 1))
                     else:
+                        if indicator_year_by_column_dict[icol].indicator not in observations_per_country_dict:
+                            observations_per_country_dict[indicator_year_by_column_dict[icol].indicator] = []
                         obs_count += 1
-                        previous_value, previous_year = deduce_previous_value_and_year(observations_per_country, int(model_obs.ref_year.value))
+                        previous_value, previous_year = deduce_previous_value_and_year(observations_per_country_dict[indicator_year_by_column_dict[icol].indicator],
+                                                                                       int(model_obs.ref_year.value))
                         self._db_observations.insert_observation(observation=model_obs,
                                                                  observation_uri=build_observation_uri(config=self._config,
                                                                                                        ind_code=indicator_year_by_column_dict[icol].indicator,
@@ -66,9 +71,15 @@ class PrimaryObservationsParser(object):
                                                                  indicator_code=indicator_year_by_column_dict[icol].indicator,
                                                                  indicator_name=self._get_indicator_name(indicator_year_by_column_dict[icol].indicator),
                                                                  previous_value=previous_value,
-                                                                 previous_year=previous_year
+                                                                 year_of_previous_value=previous_year
                                                                  )
-                        observations_per_country.append(model_obs)
+                        observations_per_country_dict[indicator_year_by_column_dict[icol].indicator].append(model_obs)
+                for key in observations_per_country_dict:
+                    self._db_visualizations.insert_visualization(observations=observations_per_country_dict[key],
+                                                                 area_iso3_code=self._get_country_code_by_name(country_name),
+                                                                 area_name=self._get_std_country_name(country_name),
+                                                                 indicator_code=key,
+                                                                 indicator_name=self._get_indicator_name(key))
             except ValueError as e:
                 self._log.error("ERROR while parsing row {} of sheet {}: {}. "
                                 "Parsing process will continue in the next row.".format(irow + 1,
@@ -207,7 +218,6 @@ class PrimaryObservationsParser(object):
         and YYY an indicator code. It returns an IndicatorYear object with those
         two values.
         """
-        # TODO: assertions
         array_str = original_string.split(".")
         if len(array_str) != 3:
             raise ValueError("Primary observations: Unrecognized format of header: {} ".format(original_string))

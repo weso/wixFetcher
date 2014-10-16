@@ -15,13 +15,14 @@ class SecondaryObservationsParser(object):
 
 
 
-    def __init__(self, log, db_observations, db_countries, db_indicators, config):
+    def __init__(self, log, db_observations, db_countries, db_indicators, db_visualizations, config):
         self._log = log
         self._config = config
         self._extra_calculator = None
         self._db_observations = db_observations
         self._country_dict = initialize_country_dict(db_countries)  # It will contain a dictionary of [name] --> [code]
         self._indicator_dict = initialize_indicator_dict(db_indicators)
+        self._db_visualizations = db_visualizations
 
 
     def parse_data_sheet(self, sheet):
@@ -50,6 +51,7 @@ class SecondaryObservationsParser(object):
             i += 1
 
         self._log.info("Parsing sheet {} ended... {} countries, {} observations".format(sheet.name,
+
                                                                                         country_count,
                                                                                         obs_count))
 
@@ -96,6 +98,11 @@ class SecondaryObservationsParser(object):
                                                                          str(i + 1),
                                                                          country_name))
             i += 1
+        self._db_visualizations.insert_visualization(observations=country_parsed_obs,
+                                                     area_iso3_code=area_code,
+                                                     area_name=self._get_std_country_name(country_name),
+                                                     indicator_code=indicator_code,
+                                                     indicator_name=self._get_indicator_name(indicator_code))
         return obs_count
 
 

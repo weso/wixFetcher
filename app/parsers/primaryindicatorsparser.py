@@ -58,7 +58,7 @@ class PrimaryIndicatorsAndGroupsParser(object):
             model_comp = self._turn_located_comp_into_model_comp(comp)
             self._db_component.insert_component(model_comp,
                                                 component_uri=build_indicator_uri(self._config,
-                                                                                  normalize_component_code_for_uri(comp.code)),
+                                                                                  normalize_component_code_for_uri(comp.name)),
                                                 subindex_name=self._match_component_with_subindex(comp),
                                                 index_name="INDEX")
 
@@ -66,7 +66,7 @@ class PrimaryIndicatorsAndGroupsParser(object):
             model_subin = self._turn_located_subin_into_model_subin(subin)
             self._db_subindex.insert_subindex(model_subin,
                                               subindex_uri=build_indicator_uri(self._config,
-                                                                               normalize_subindex_code_for_uri(subin.code)),
+                                                                               normalize_subindex_code_for_uri(subin.name)),
                                               index_name="INDEX")
 
         self._db_index.insert_index(self._create_model_index_object(),

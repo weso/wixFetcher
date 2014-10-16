@@ -11,6 +11,7 @@ from infrastructure.mongo_repos.subindex_repository import SubindexRepository
 from infrastructure.mongo_repos.index_repository import IndexRepository
 from infrastructure.mongo_repos.observation_repository import ObservationRepository
 from infrastructure.mongo_repos.area_repository import AreaRepository
+from infrastructure.mongo_repos.visualization_repository import VisualizationRepository
 
 
 class Parser(object):
@@ -34,6 +35,7 @@ class Parser(object):
             indexes_db = IndexRepository(self._config.get("CONNECTION", "MONGO_IP"))
             observations_db = ObservationRepository(self._config.get("CONNECTION", "MONGO_IP"))
             areas_db = AreaRepository(self._config.get("CONNECTION", "MONGO_IP"))
+            visualizations_db = VisualizationRepository(self._config.get("CONNECTION", "MONGO_IP"))
 
             self._log.info("Successfully connected to databases")
 
@@ -69,7 +71,8 @@ class Parser(object):
                                                                         config=self._config,
                                                                         db_observations=observations_db,
                                                                         db_countries=areas_db,
-                                                                        db_indicators=indicators_db)
+                                                                        db_indicators=indicators_db,
+                                                                        db_visualizations=visualizations_db)
             sec_indicators_count = 0
             for i in range(self._config.getint("PARSER", "_FIRST_OBSERVATIONS_SHEET"), len(sheets) - 2):
                 secondary_observations_parser.parse_data_sheet(sheets[i])
@@ -82,7 +85,8 @@ class Parser(object):
                                                                     config=self._config,
                                                                     db_observations=observations_db,
                                                                     db_countries=areas_db,
-                                                                    db_indicators=indicators_db)
+                                                                    db_indicators=indicators_db,
+                                                                    db_visualizations=visualizations_db)
             primary_observations_parser.parse_data_sheet(sheets[len(sheets) - 2])
             self._log.info("Primary observations parsed... ")
             self._log.info("Parsing process ended......")
