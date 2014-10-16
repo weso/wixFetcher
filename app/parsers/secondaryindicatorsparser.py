@@ -1,8 +1,7 @@
 __author__ = 'Dani'
 
 from webindex.domain.model.indicator.indicator import create_indicator
-from webindex.domain.model.component import create_component
-from webindex.domain.model.subindex import create_sub_index
+from .utils import build_indicator_uri
 
 
 class SecondaryIndicatorsParser(object):
@@ -35,6 +34,7 @@ class SecondaryIndicatorsParser(object):
         for excell_ind in self._indicators:
             model_ind = self._turn_excell_ind_into_model_ind(excell_ind)
             self._db.insert_indicator(model_ind,
+                                      indicator_uri=build_indicator_uri(self._config, excell_ind.code),
                                       component_name=excell_ind.component.name,
                                       subindex_name=excell_ind.component.subindex.name,
                                       index_name="INDEX",
