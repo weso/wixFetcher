@@ -1,6 +1,7 @@
 __author__ = 'Miguel'
 
 import xlrd
+import numpy
 import re
 from ..util.excel_util import ExcelUtil
 from ..util.utils import *
@@ -15,7 +16,6 @@ from infrastructure.mongo_repos.area_repository import AreaRepository
 
 
 class ComputationModule(object):
-
     def __init__(self, log):
         self._log = log
         self._indicator_repo = IndicatorRepository("localhost")
@@ -28,7 +28,7 @@ class ComputationModule(object):
         print "Inicializando indice"
         self._initialize_index()
         print "Cogiendo observaciones"
-        self._get_imputed_observations()
+        self._get_imputed_observations(u"2014")  # TODO: Remember to change this (ask Hania)
         print "Agrupando en componentes"
         self._calculate_component_grouped_value()
         print "Fin :)"
@@ -51,82 +51,79 @@ class ComputationModule(object):
                                                      indicator["high_low"], indicator["weight"])
                         component_object.add_indicator(indicator_object)
 
-    def _get_imputed_observations(self):
-        observations_document = self._observations_repo.find_observations(None, None, u"2013")
-        sheets = self._get_imputed_data_sheets()
-        if observations_document["success"]:
-            observations_document = observations_document["data"]
-            for observation_document in observations_document:
-                observation = Observation(observation_document["indicator"], observation_document["area"],
-                                          observation_document["year"], observation_document["value"])
-                self._observations[observation_document["_id"]] = observation
-                print "\t" + "Normalizando observacion " + observation.indicator_code + " " + observation.area + " " + observation.year
-                observation.normalized_value = self._normalize_observation_value(observation, sheets)
-                if observation.normalized_value is not None:
-                    observation.weighed_value = self._apply_weight_to_observation_value(observation)
+    def _get_imputed_observations(self, year):
+        indicators_document = self._indicator_repo.find_indicators_indicators()
+        if not indicators_document["success"]:
+            self._log.error("Could not get indicators from db")
+            return
+        indicators_document = indicators_document["data"]
+        for indicator_document in indicators_document:
+            year = u'2014'
+            observations_document = self._observations_repo.find_observations(indicator_document["indicator"],
+                                                                              None, year)
+            if len(observations_document["data"]) == 0:
+                year = u'2013'
+                observations_document = self._observations_repo.find_observations(indicator_document["indicator"],
+                                                                              None, year)
+            if not observations_document["success"]:
+                self._log.error("Could not get observations of " + indicator_document["indicator"]
+                                + " indicator from db for year " + year)
+                return
+            if len(observations_document["data"]) > 0:
+                mean, stdev = self._get_obs_mean_and_stdev(indicator_document["indicator"], year)
+                observations_document = observations_document["data"]
+                print "\tIndicador " + indicator_document["indicator"] + ". " + str(len(observations_document)) + " observaciones"
+                for observation_document in observations_document:
+                    observation = Observation(observation_document["indicator"], observation_document["area"],
+                                              observation_document["year"], observation_document["value"])
+                    self._observations[observation_document["_id"]] = observation
+                    print "\t\t" + "Normalizando observacion " + observation.indicator_code + " " + observation.area + " " + observation.year
+                    observation.normalized_value = self._normalize_observation_value(observation, mean, stdev)
+                    if observation.normalized_value is not None:
+                        observation.weighed_value = self._apply_weight_to_observation_value(observation)
+                        print "\t\t\t" + str(observation.normalized_value) + "   " + str(observation.weighed_value)
+            else:
+                self._log.warning("There are no observations of " + indicator_document["indicator"]
+                                  + " indicator for year " + year)
 
-    def _normalize_observation_value(self, observation, sheets):
+    def _normalize_observation_value(self, observation, mean, stdev):
         normalized_value = 0
         indicator_document = self._indicator_repo.find_indicators_by_code(observation.indicator_code)
-        if indicator_document["success"]:
-            indicator_document = indicator_document["data"]
-            mean, stdev = self._get_obs_mean_and_stdev(observation, indicator_document["type"], sheets)
-            if indicator_document["high_low"] == "high":
-                normalized_value = round((observation.value - mean) / stdev, 2)
-            elif indicator_document["high_low"] == "low":
-                normalized_value = round((mean - observation.value) / stdev, 2)
-            else:
-                self._log.error("Observation high/low field invalid: " + indicator_document["high_low"])
-            return normalized_value
+        if not indicator_document["success"]:
+            self._log.error("Could not get observation's indicator code " + observation.indicator_code)
+            return
+        indicator_document = indicator_document["data"]
+        if indicator_document["high_low"] == "high":
+            normalized_value = (observation.value - mean) / stdev
+        elif indicator_document["high_low"] == "low":
+            normalized_value = (mean - observation.value) / stdev
         else:
-            self._log.error("Retrieving observation code indicator " + observation.indicator_code)
+            self._log.error("Observation high/low field invalid: " + indicator_document["high_low"])
+        return normalized_value
 
     def _apply_weight_to_observation_value(self, observation):
         indicator_document = self._indicator_repo.find_indicators_by_code(observation.indicator_code)
-        if indicator_document["success"]:
-            indicator_document = indicator_document["data"]
-            if indicator_document["weight"] is not None:
-                weighed_value = indicator_document["weight"] * observation.normalized_value
-            else:
-                weighed_value = observation.normalized_value
-            return weighed_value
-        else:
-            self._log.error("Retrieving observation code indicator " + observation.indicator_code)
+        if not indicator_document["success"]:
+            self._log.error("Could not get observation's indicator code " + observation.indicator_code)
+            return
+        indicator_document = indicator_document["data"]
+        weighed_value = indicator_document["weight"] * observation.normalized_value
+        return weighed_value
 
-    def _get_obs_mean_and_stdev(self, observation, indicator_type, sheets):
-        found = False
-        if indicator_type == "Primary":
-            for sheet in sheets:
-                if "PrimaryIndicators" in str(sheet.name).replace(" ", "_"):
-                    found = True
-                    break
-            if not found:
-                self._log.error("Observation's indicator code " + observation.indicator_code +
-                                " does not match with any of the Excel spreadsheets")
-                return
-            i = 0
-            while i < sheet.ncols - 1:
-                if (observation.year + "." + observation.indicator_code) in str(int(sheet.row(0)[i+1].value)):
-                    mean = float(sheet.row(sheet.nrows - 3)[i].value)
-                    stdev = float(sheet.row(sheet.nrows - 1)[i].value)
-                    return mean, stdev
-                i += 1
-        elif indicator_type == "Secondary":
-            for sheet in sheets:
-                if observation.indicator_code in str(sheet.name).replace(" ", "_"):
-                    found = True
-                    break
-            if not found:
-                self._log.error("Observation's indicator code " + observation.indicator_code +
-                                " does not match with any of the Excel spreadsheets")
-                return
-            i = 0
-            while i < sheet.ncols - 1:
-                if str(int(sheet.row(0)[i+1].value)) == observation.year:
-                    mean = float(sheet.row(sheet.nrows - 5)[i].value)
-                    stdev = float(sheet.row(sheet.nrows - 3)[i].value)
-                    return mean, stdev
-                i += 1
+    def _get_obs_mean_and_stdev(self, indicator_code, year):
+        observations_document = self._observations_repo.find_observations(indicator_code, None, year)
+        if not observations_document["success"]:
+            self._log.error("Could not get observations of " + indicator_code + " indicator from db for year " + year)
+            return
+        observations_document = observations_document["data"]
+        values = []
+        for observation_document in observations_document:
+            values.append(float(observation_document["value"]))
+        mean = numpy.mean(values, 0)
+        stdev = numpy.std(values, 0)
+        print "\tMean: " + str(mean)
+        print "\tSTD: " + str(stdev)
+        return mean, stdev
 
     def _calculate_component_grouped_value(self):
         areas_document = self._areas_repo.find_countries("name")
@@ -137,32 +134,25 @@ class ComputationModule(object):
                 components_document = components_document["data"]
                 for area_document in areas_document:
                     for component_document in components_document:
-                        indicators_document = self._indicator_repo.find_indicator_children(component_document["indicator"])
-                        if indicators_document["success"]:
-                            indicators_document = indicators_document["data"]
-                            _sum = 0
-                            for indicator_document in indicators_document:
-                                observation_document = self._observations_repo.find_observations(indicator_document["indicator"],
-                                                                                                  area_document["iso3"],
-                                                                                                  "2013")
-                                if observation_document["success"]:
-                                    observation_document = observation_document["data"]
-                                    observation = self._observations[observation_document["_id"]]
-                                    _sum += observation.weighed_value
+                        indicators_document = self._indicator_repo.find_indicator_children(
+                            component_document["indicator"])
+                        _sum = 0
+                        for indicator_document in indicators_document:
+                            observation_document = self._observations_repo.find_observations(
+                                indicator_document["indicator"],
+                                area_document["iso3"],
+                                "2013")
+                            if observation_document["success"]:
+                                observation_document = observation_document["data"][0]
+                                observation = self._observations[observation_document["_id"]]
+                                _sum += observation.weighed_value
                         component_mean = _sum / len(indicators_document)
                         component = self._components[component_document["_id"]]
                         component.grouped_values[area_document["iso3"]] = component_mean
 
-
     @staticmethod
     def _get_imputed_data_sheets():
-        sheets = xlrd.open_workbook("./data_file.xlsx").sheets()
-        return_sheets = []
-        for sheet in sheets:
-            match = re.match("[\w\d\s_-]+(imputed)$", sheet.name, re.I)
-            if match:
-                return_sheets.append(sheet)
-        return return_sheets
+        return xlrd.open_workbook("./data_file.xlsx").sheets()
 
     @staticmethod
     def _get_computations_sheet():
