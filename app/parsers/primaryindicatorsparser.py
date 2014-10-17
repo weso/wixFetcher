@@ -74,30 +74,6 @@ class PrimaryIndicatorsAndGroupsParser(object):
 
 
 
-    @staticmethod
-    def _turn_located_comp_into_model_comp(located_comp):
-        result = create_component(order=None,
-                                  contributor=None,
-                                  issued=utc_now(),
-                                  label=located_comp.name,
-                                  notation=None)
-        return result
-
-    @staticmethod
-    def _turn_located_subin_into_model_subin(located_subin):
-        result = create_sub_index(order=None,
-                                  colour=None,
-                                  label=located_subin.name,
-                                  notation=None)
-        return result
-
-    @staticmethod
-    def _create_model_index_object():
-        result = create_index(order=None,
-                              colour=None,
-                              label="Index",
-                              notation=None)
-        return result
 
 
 

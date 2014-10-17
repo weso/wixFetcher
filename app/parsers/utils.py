@@ -33,7 +33,7 @@ def initialize_indicator_dict(db_indicators):
 
 
 def look_for_country_name_exception(original):
-    if original in ['Republic of Korea', 'Republic Of Korea']:
+    if original in ['Republic of Korea', 'Republic Of Korea', 'Korea, Rep.']:
         return 'Korea (Rep. of)'
     elif original in ['Russia']:
         return "Russian Federation"
@@ -47,6 +47,12 @@ def look_for_country_name_exception(original):
         return 'Venezuela (Bolivarian Republic Of)'
     elif original in ['UAE']:
         return "United Arab Emirates"
+    elif original in ['Egypt, Arab Rep.']:
+        return "Egypt"
+    elif original in ['Yemen, Rep.']:
+        return 'Yemen'
+    elif original in ['Viet nam']:
+        return 'Viet Nam'
     else:
         return None
 
