@@ -41,28 +41,31 @@ class Parser(object):
 
 
             # Parsing indicatros
-            self._log.info("Parsing secondary indicators... ")
+            self._log.info("Parsing indicators... ")
             secondary_indicators_parser = SecondaryIndicatorsParser(log=self._log,
                                                                     config=self._config,
-                                                                    db=indicators_db)
+                                                                    db_indicator=indicators_db,
+                                                                    db_component=components_db,
+                                                                    db_subindex=subindexes_db,
+                                                                    db_index=indexes_db)
             secondary_indicators_parser.\
-                parse_indicators_sheet(sheets[self._config.getint("PARSER",
-                                                                  "_SECONDARY_INDICATOR_METADATA_SHEET")],
-                                       sheets[self._config.getint("PARSER",
-                                                                  "_PRIMARY_INDICATOR_METADATA_SHEET")])
-            self._log.info("Secondary indicators parsed... ")
+                parse_indicators_sheet(sheet=sheets[self._config.getint("PARSER",
+                                                                        "_INDICATORS_SHEET")],
+                                       sheet_weights_groups=sheets[self._config.getint("PARSER",
+                                                                                       "_COMPONENT_WEIGHTS_SHEET")])
+            self._log.info("Indicators parsed... ")
 
-            self._log.info("Parsing primary indicators and groups... ")
-            primary_indicators_parser = PrimaryIndicatorsAndGroupsParser(log=self._log,
-                                                                         config=self._config,
-                                                                         db_indicator=indicators_db,
-                                                                         db_component=components_db,
-                                                                         db_subindex=subindexes_db,
-                                                                         db_index=indexes_db)
-            primary_indicators_parser.\
-                parse_indicators_sheet(sheets[self._config.getint("PARSER",
-                                                                  "_PRIMARY_INDICATOR_METADATA_SHEET")])
-            self._log.info("Primary indicators and groups parsed... ")
+            # self._log.info("Parsing primary indicators and groups... ")
+            # primary_indicators_parser = PrimaryIndicatorsAndGroupsParser(log=self._log,
+            #                                                              config=self._config,
+            #                                                              db_indicator=indicators_db,
+            #                                                              db_component=components_db,
+            #                                                              db_subindex=subindexes_db,
+            #                                                              db_index=indexes_db)
+            # primary_indicators_parser.\
+            #     parse_indicators_sheet(sheets[self._config.getint("PARSER",
+            #                                                       "_PRIMARY_INDICATOR_METADATA_SHEET")])
+            # self._log.info("Primary indicators and groups parsed... ")
 
             # Parsing observations
 

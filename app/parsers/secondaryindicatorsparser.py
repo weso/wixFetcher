@@ -2,33 +2,37 @@ __author__ = 'Dani'
 
 from webindex.domain.model.indicator.indicator import create_indicator
 from .utils import build_indicator_uri
+from .utils import normalize_component_code_for_uri, normalize_subindex_code_for_uri
+from webindex.domain.model.component import create_component
+from webindex.domain.model.subindex import create_sub_index
+from webindex.domain.model.index import create_index
+from utility.time import utc_now
 
 
 class SecondaryIndicatorsParser(object):
 
 
-
-
-
-
-    def __init__(self, log, db, config):
+    def __init__(self, log, db_indicator, db_component, db_subindex, db_index, config):
         self._log = log
-        self._db = db
+        self._db = db_indicator
+        self._db_component = db_component
+        self._db_subindex = db_subindex
+        self._db_index = db_index
         self._config = config
         self._indicators = []
         self._components = {}
         self._subindexes = {}
 
-    def parse_indicators_sheet(self, sheet, secondary_weights_sheet):
+    def parse_indicators_sheet(self, sheet, sheet_weights_groups):
         """
         Do the parsing process, persist the indicators and return the number of indicator found.
 
         :param sheet:
         :return:
         """
-        for i in range(self._config.getint("SECONDARY_INDICATORS_PARSER", "FIRST_DATA_ROW"),
-                       self._config.getint("SECONDARY_INDICATORS_PARSER", "LAST_DATA_ROW") + 1):
-            self._parse_indicator_row(sheet.row(i))
+        for i in range(self._config.getint("INDICATORS_PARSER", "FIRST_DATA_ROW"),
+                       self._config.getint("INDICATORS_PARSER", "LAST_DATA_ROW") + 1):
+            self._parse_indicator_row(sheet.row(i), sheet_weights_groups)
 
         self._log.info("Secondary indicators detected: {}".format(len(self._indicators)))
         for excell_ind in self._indicators:
@@ -38,100 +42,105 @@ class SecondaryIndicatorsParser(object):
                                       component_name=excell_ind.component.name,
                                       subindex_name=excell_ind.component.subindex.name,
                                       index_name="INDEX",
-                                      weight=self._look_for_indicator_weight(excell_ind.code,
-                                                                             secondary_weights_sheet))
+                                      weight=excell_ind.weight)
+        self._persist_groups()
         return len(self._indicators)
 
-    def _look_for_indicator_weight(self, indicator_code, secondary_weights_sheet):
+
+
+    def _persist_groups(self):
         """
-        It looks in the secondary_weights_sheet the indicator_code and returns its associated weight
-
-
-        :param indicator_code:
-        :param secondary_weights_sheet:
+        Introduce in the database information about components, index and subindexes
         :return:
         """
-        code_positions = self._calculate_code_positions_in_weights_sheet(secondary_weights_sheet)
-        for irow in range(self._config.getint("PRIMARY_INDICATORS_PARSER", "FIRST_INDICATORS_COLUMN"),
-                       self._config.getint("PRIMARY_INDICATORS_PARSER", "PRIMARY_INDICATORS_ROW_BEGIN")):
-            for icol in code_positions:
-                if self._normalize_code_for_weight_search(secondary_weights_sheet.row(irow)[icol].value) ==\
-                        self._normalize_code_for_weight_search(indicator_code):
-                    print "Encontre para", indicator_code, "!!"
-                    return int(secondary_weights_sheet.row(irow)[icol + 3].value)  # 3 is the distance between code and weight
-        self._log.warning("Unable to find weight for secondary indicator {}. We will assume weight 1".
-                          format(indicator_code))
-        return 1
+
+        for comp_key in self._components:
+            comp = self._components[comp_key]
+            model_comp = self._turn_excell_comp_into_model_comp(comp)
+            self._db_component.insert_component(model_comp,
+                                                component_uri=build_indicator_uri(self._config,
+                                                                                  normalize_component_code_for_uri(comp.name)),
+                                                subindex_name=comp.subindex.name,
+                                                index_name="INDEX")
+
+        for subin_key in self._subindexes:
+            subin = self._subindexes[subin_key]
+            model_subin = self._turn_excell_subin_into_model_subin(subin)
+            self._db_subindex.insert_subindex(model_subin,
+                                              subindex_uri=build_indicator_uri(self._config,
+                                                                               normalize_subindex_code_for_uri(subin.name)),
+                                              index_name="INDEX")
+
+        self._db_index.insert_index(self._create_model_index_object(),
+                                    index_uri=build_indicator_uri(self._config, "INDEX"))
 
 
     @staticmethod
-    def _normalize_code_for_weight_search(indicator_code):
-        """
-        Some indicators codes are not coherent between sheets: different separators or even absence of separators.
-        We should erase all posible separators and to upper every string in order to look for coincidences.
-
-        :param indicator_code:
-        :return:
-        """
-        return indicator_code.upper().replace("_", "").replace("-", "").replace(" ", "")
-        pass
-
-    def _calculate_code_positions_in_weights_sheet(self, secondary_weights_sheet):
-        """
-        It returns an array containing the index of the columns in which indicators codes
-        can be found
-        :return:
-        """
-        first_pos = self._config.getint("PRIMARY_INDICATORS_PARSER", "FIRST_INDICATORS_COLUMN")
-        result = [first_pos]
-        i = first_pos + 4  # We are adding four because this is the number of columns of separation between codes
-        while i < secondary_weights_sheet.ncols:
-            content = secondary_weights_sheet.row(self._config.getint("PRIMARY_INDICATORS_PARSER",
-                                                                      "TITLES_ROW"))[i].value
-            if content.upper().replace(" ", "") == "CODE":
-                result.append(i)
-            else:
-                break
-            i += 4
-
+    def _turn_excell_comp_into_model_comp(excell_comp):
+        result = create_component(order=None,
+                                  contributor=None,
+                                  issued=utc_now(),
+                                  label=excell_comp.name,
+                                  notation=None)
         return result
+
+    @staticmethod
+    def _turn_excell_subin_into_model_subin(excell_subin):
+        result = create_sub_index(order=None,
+                                  colour=None,
+                                  label=excell_subin.name,
+                                  notation=None)
+        return result
+
+    @staticmethod
+    def _create_model_index_object():
+        result = create_index(order=None,
+                              colour=None,
+                              label="Index",
+                              notation=None)
+        return result
+
 
 
     def _turn_excell_ind_into_model_ind(self, excell_ind):
         result = create_indicator(_type="Secondary",
-                                  country_coverage=self._config.getint("SECONDARY_INDICATORS_PARSER", "COUNTRY_COVERAGE"),
+                                  country_coverage=self._config.getint("INDICATORS_PARSER",
+                                                                       "COUNTRY_COVERAGE"),
                                   provider_link=excell_ind.data_prov_link,
-                                  republish=True,  # We may have to check this
+                                  republish=excell_ind.republish,  # We may have to check this
                                   high_low=excell_ind.high_low,
                                   label=excell_ind.name,
                                   comment=excell_ind.description,
                                   notation=None,  # For rdf. Unedeed at this point
-                                  interval_starts=self._config.getint("SECONDARY_INDICATORS_PARSER", "INTERVAL_STARTS"),
-                                  interval_ends=self._config.getint("SECONDARY_INDICATORS_PARSER", "INTERVAL_ENDS"),
+                                  interval_starts=self._config.getint("INDICATORS_PARSER",
+                                                                      "INTERVAL_STARTS"),
+                                  interval_ends=self._config.getint("INDICATORS_PARSER",
+                                                                    "INTERVAL_ENDS"),
                                   code=excell_ind.code,
                                   organization=None)  # We will add it, if needed, through a method
         if excell_ind.source is not None:
             result.add_organization(excell_ind.source)
         return result
 
-    def _parse_indicator_row(self, row):
+    def _parse_indicator_row(self, row, sheet_group_weights):
         result = IndicatorExcell(code=self._look_for_code(row),
                                  name=self._look_for_name(row),
                                  description=self._look_for_description(row),
-                                 source=self._look_for_source(row),  # TODO: sure this is the proper content?
+                                 source=self._look_for_source(row),
+                                 weight=self._look_for_weight(row),
+                                 type_of_indicator=self._look_for_type(row),
                                  data_prov_link=self._look_for_data_prov_link(row),
-                                 latest_rep=self._look_for_latest_rep(row),  # An URL
-                                 min_range=self._look_for_min_range(row),  # String, could be unbounded
-                                 max_range=self._look_for_max_range(row),  # String, could be unbounded
-                                 high_low=self._look_for_high_low(row))
-        self._process_components_and_subindexes(result, row)
+                                 latest_rep=self._look_for_latest_rep(row),
+                                 high_low=self._look_for_high_low(row),
+                                 republish=self._look_for_republish(row))
+        self._process_components_and_subindexes(result, row, sheet_group_weights)
         self._indicators.append(result)
 
 
-    def _process_components_and_subindexes(self, indicator, row):
-        subindex_name = self._normalize_subindex_name(row[self._config.getint("SECONDARY_INDICATORS_PARSER",
-                                                                                    "SUBINDEX")].value)
-        component_name = self._normalize_component_name(row[self._config.getint("SECONDARY_INDICATORS_PARSER",
+    def _process_components_and_subindexes(self, indicator, row, sheet_group_weights):
+        subindex_name = self._normalize_subindex_name(row[self._config.getint("INDICATORS_PARSER",
+                                                                              "SUBINDEX")].value)
+        component_name = self._normalize_component_name(row[self._config.getint("INDICATORS_PARSER",
                                                                                 "COMPONENT")].value)
 
         subindex = None
@@ -142,7 +151,8 @@ class SecondaryIndicatorsParser(object):
         if subindex_name in self._subindexes:
             subindex = self._subindexes[subindex_name]
         else:
-            subindex = SubIndexExcell(name=subindex_name)
+            subindex = SubIndexExcell(name=subindex_name,
+                                      weight=self._look_for_group_weight(subindex_name, sheet_group_weights))
             self._subindexes[subindex_name] = subindex
 
 
@@ -150,12 +160,29 @@ class SecondaryIndicatorsParser(object):
         if component_name in self._components:
             component = self._components[component_name]
         else:
-            component = ComponentExcell(name=component_name)
+            component = ComponentExcell(name=component_name,
+                                        weight=self._look_for_group_weight(subindex_name, sheet_group_weights))
             subindex.add_component(component)
             self._components[component_name] = component
 
         #Linking indicator and component
         component.add_indicator(indicator)
+
+
+    def _look_for_group_weight(self, name, sheet):
+        name_col = self._config.getint("INDICATORS_PARSER", "GROUP_NAME_COLUMN")
+        weight_col = self._config.getint("INDICATORS_PARSER", "GROUP_WEIGHT_COLUMN")
+
+        for irow in range(0, sheet.nrows):
+            if sheet.row(irow)[name_col].value.upper() == name.upper():
+                try:
+                    return float(sheet.row(irow)[weight_col])
+                except BaseException as e:
+                    self._log.error("Wrong weight for a grouped entity: {}".format(name))
+                    raise ValueError("Wrong weight for a grouped entity: {}".format(name))
+        self._log.error("Unable to detect weight for a grouped entity: {}".format(name))
+        raise ValueError("Unable to detect weight for a grouped entity: {}".format(name))
+
 
 
     @staticmethod
@@ -175,6 +202,7 @@ class SecondaryIndicatorsParser(object):
             .replace("&", "and")\
             .capitalize()
 
+
     @staticmethod
     def _normalize_subindex_name(original):
         """
@@ -190,57 +218,38 @@ class SecondaryIndicatorsParser(object):
             .capitalize()
 
     def _look_for_high_low(self, row):
-        cell = row[self._config.getint("SECONDARY_INDICATORS_PARSER", "HIGH_LOW")]
+        cell = row[self._config.getint("INDICATORS_PARSER", "HIGH_LOW")]
         if ExcellUtils.is_empty_cell(cell):
             return None
         else:
             return cell.value
 
-    def _look_for_max_range(self, row):
-        cell = row[self._config.getint("SECONDARY_INDICATORS_PARSER", "DATA_RANGE")]
+    def _look_for_type(self, row):
+        cell = row[self._config.getint("INDICATORS_PARSER", "TYPE")]
         if ExcellUtils.is_empty_cell(cell):
-            return None
+            raise ValueError("Unknown type of indicator: {}. It should be Primary or Secondary".format(cell.value))
         else:
-            return self._parse_max_range(cell.value)
+            if cell.value.upper().replace(" ", "") == "PRIMARY":
+                return "Primary"
+            elif cell.value.upper().replace(" ", "") == "SECONDARY":
+                return "Secondary"
+            else:
+                raise ValueError("Unknown type of indicator: {}. It should be Primary or Secondary".format(cell.value))
 
-    def _look_for_min_range(self, row):
-        cell = row[self._config.getint("SECONDARY_INDICATORS_PARSER", "DATA_RANGE")]
+    def _look_for_weight(self, row):
+        cell = row[self._config.getint("INDICATORS_PARSER", "WEIGHT")]
         if ExcellUtils.is_empty_cell(cell):
-            return None
+            self._log.warning("Some missing wight in indicatrs. Assuming weight 1, but check excell file.")
         else:
-            return self._parse_min_range(cell.value)
-
-
-    def _parse_min_range(self, original_complete):
-        return self._parse_some_range(original_complete, 0)
-
-
-    def _parse_max_range(self, original_complete):
-        return self._parse_some_range(original_complete, 1)
-
-    def _parse_some_range(self, original_complete, position):
-        """
-        The operations to extract the min range and the max range are the same, but returning different
-        parts of the string.
-        position = 0 ---> the method returns min range
-        position = 1 ---> the method return max range
-
-        :param original_complete:
-        :param position:
-        :return:
-        """
-        if "-" in original_complete:
-            return original_complete.split("-")[position]
-        elif "," in original_complete:
-            return original_complete.split(",")[position]
-        else:
-            self._log.warning("Unexpected format for range while parsing indicators (looking for min): "
-                              + original_complete)
-            return original_complete
+            try:
+                return float(cell.value)
+            except BaseException:
+                self._log.error("Error while parsing a weight. Unexpected value {}".format(cell.value))
+                raise ValueError("Error while parsing a weight. Unexpected value {}".format(cell.value))
 
 
     def _look_for_latest_rep(self, row):
-        cell = row[self._config.getint("SECONDARY_INDICATORS_PARSER", "LATEST_REPORT")]
+        cell = row[self._config.getint("INDICATORS_PARSER", "LATEST_REPORT")]
         if ExcellUtils.is_empty_cell(cell):
             return None
         else:
@@ -248,7 +257,7 @@ class SecondaryIndicatorsParser(object):
 
 
     def _look_for_data_prov_link(self, row):
-        cell = row[self._config.getint("SECONDARY_INDICATORS_PARSER", "DATA_PROVIDER")]
+        cell = row[self._config.getint("INDICATORS_PARSER", "DATA_PROVIDER")]
         if ExcellUtils.is_empty_cell(cell):
             return None
         else:
@@ -256,7 +265,7 @@ class SecondaryIndicatorsParser(object):
 
 
     def _look_for_source(self, row):
-        cell = row[self._config.getint("SECONDARY_INDICATORS_PARSER", "SOURCE")]
+        cell = row[self._config.getint("INDICATORS_PARSER", "SOURCE")]
         if ExcellUtils.is_empty_cell(cell):
             return None
         else:
@@ -264,7 +273,7 @@ class SecondaryIndicatorsParser(object):
 
 
     def _look_for_description(self, row):
-        cell = row[self._config.getint("SECONDARY_INDICATORS_PARSER", "DESCRIPTION")]
+        cell = row[self._config.getint("INDICATORS_PARSER", "DESCRIPTION")]
         if ExcellUtils.is_empty_cell(cell):
             return None
         else:
@@ -288,7 +297,7 @@ class SecondaryIndicatorsParser(object):
 
 
     def _look_for_name(self, row):
-        cell = row[self._config.getint("SECONDARY_INDICATORS_PARSER", "NAME")]
+        cell = row[self._config.getint("INDICATORS_PARSER", "NAME")]
         if ExcellUtils.is_empty_cell(cell):
             return None
         else:
@@ -297,11 +306,25 @@ class SecondaryIndicatorsParser(object):
 
 
     def _look_for_code(self, row):
-        cell = row[self._config.getint("SECONDARY_INDICATORS_PARSER", "CODE")]
+        cell = row[self._config.getint("INDICATORS_PARSER", "CODE")]
         if ExcellUtils.is_empty_cell(cell):
             return None
         else:
             return self._normalize_code(cell.value)
+
+    def _look_for_republish(self, row):
+        cell = row[self._config.getint("INDICATORS_PARSER", "REPUBLISH")]
+        if ExcellUtils.is_empty_cell(cell):
+            self._log.warning("Missing republish indicator attribute. Assuming republish = yes in these cases cases")
+            return True
+        else:
+            if cell.value.upper().replace(" ", "") == "YES":
+                return True
+            elif cell.value.upper().replace(" ", "") == "NO":
+                return False
+            else:
+                self._log.error("Unrecognized republish att parsing indicator: {}".format(cell.value))
+                raise ValueError("Unrecognized republish att parsing indicator: {}".format(cell.value))
 
     @staticmethod
     def _normalize_code(original):
@@ -325,25 +348,26 @@ class ExcellUtils(object):
 class IndicatorExcell(object):
     def __init__(self, code, name, description=None,
                  source=None, data_prov_link=None,
-                 latest_rep=None, min_range=None,
-                 max_range=None, high_low=None):
+                 latest_rep=None, type_of_indicator=None,
+                 weight=None, high_low=None, republish=None):
         self.code = code
         self.name = name
         self.description = description
         self.source = source
         self.data_prov_link = data_prov_link
         self.latest_rep = latest_rep
-        self.min_range = min_range
-        self.max_range = max_range
         self.high_low = high_low
+        self.type_of_indicator = type_of_indicator
+        self.weight = weight
+        self.republish = republish
 
         self.component = None
 
 
 class ComponentExcell(object):
-    def __init__(self, name):
+    def __init__(self, name, weight):
         self.name = name
-
+        self.weight = weight
         self.subindex = None
         self.indicators = []
 
@@ -354,9 +378,9 @@ class ComponentExcell(object):
 
 
 class SubIndexExcell(object):
-    def __init__(self, name):
+    def __init__(self, name, weight):
         self.name = name
-
+        self.weight = weight
         self.components = []
 
     def add_component(self, component):
