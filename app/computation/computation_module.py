@@ -2,9 +2,6 @@ __author__ = 'Miguel'
 
 import xlrd
 import numpy
-import re
-from ..util.excel_util import ExcelUtil
-from ..util.utils import *
 from aux_model.index import Index
 from aux_model.subindex import Subindex
 from aux_model.component import Component
@@ -28,10 +25,7 @@ class ComputationModule(object):
         print "Inicializando indice"
         self._initialize_index()
         print "Cogiendo observaciones"
-        self._get_imputed_observations(u"2014")  # TODO: Remember to change this (ask Hania)
-        print "Agrupando en componentes"
-        self._calculate_component_grouped_value()
-        print "Fin :)"
+        self._get_imputed_observations(u"2014")
 
     def _initialize_index(self):
         self._index = Index()
@@ -149,11 +143,3 @@ class ComputationModule(object):
                         component_mean = _sum / len(indicators_document)
                         component = self._components[component_document["_id"]]
                         component.grouped_values[area_document["iso3"]] = component_mean
-
-    @staticmethod
-    def _get_imputed_data_sheets():
-        return xlrd.open_workbook("./data_file.xlsx").sheets()
-
-    @staticmethod
-    def _get_computations_sheet():
-        return xlrd.open_workbook("./computations.xlsx").sheet_by_name("IndexComputation 2013")
