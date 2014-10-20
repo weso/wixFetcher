@@ -12,7 +12,7 @@ from infrastructure.mongo_repos.observation_repository import ObservationReposit
 from infrastructure.mongo_repos.area_repository import AreaRepository
 
 
-class ComputationModule(object):
+class ComputationValidation(object):
     def __init__(self, log):
         self._log = log
         self._indicator_repo = IndicatorRepository("localhost")
@@ -29,7 +29,7 @@ class ComputationModule(object):
 
     def _initialize_index(self):
         self._index = Index()
-        subindexes = self._indicator_repo.find_indicators_sub_indexes()
+        subindexes = self._indicator_repo.find_indicators_indicators()
         if subindexes["success"]:
             for subindex in subindexes["data"]:
                 subindex_object = Subindex(subindex["indicator"])
