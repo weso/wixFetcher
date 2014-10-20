@@ -3,7 +3,8 @@ __author__ = 'Dani'
 
 from .utils import initialize_country_dict, look_for_country_name_exception, \
     build_label_for_observation, _is_empty_value, build_observation_uri, \
-    deduce_previous_value_and_year, normalize_code_for_uri, initialize_indicator_dict
+    deduce_previous_value_and_year, normalize_code_for_uri, initialize_indicator_dict,\
+    KEY_INDICATOR_NAME
 from webindex.domain.model.observation.observation import create_observation
 from webindex.domain.model.observation.year import Year
 from utility.time import utc_now
@@ -71,7 +72,8 @@ class PrimaryObservationsParser(object):
                                                                  indicator_code=indicator_year_by_column_dict[icol].indicator,
                                                                  indicator_name=self._get_indicator_name(indicator_year_by_column_dict[icol].indicator),
                                                                  previous_value=previous_value,
-                                                                 year_of_previous_value=previous_year
+                                                                 year_of_previous_value=previous_year,
+                                                                 republish=True  # Primary obs are always republish
                                                                  )
                         observations_per_country_dict[indicator_year_by_column_dict[icol].indicator].append(model_obs)
                 for key in observations_per_country_dict:
@@ -181,7 +183,7 @@ class PrimaryObservationsParser(object):
         """
         propper_indicator_code = normalize_code_for_uri(indicator_code)
         if propper_indicator_code in self._indicator_dict:
-            return self._indicator_dict[indicator_code]
+            return self._indicator_dict[indicator_code][KEY_INDICATOR_NAME]
         else:
             self._log.error("Unrecognized indicator code: {}. Parsing process will continue anyway. ".format(indicator_code))
             raise ValueError("Unrecognized indicator code : {}".format(indicator_code))
