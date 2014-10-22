@@ -138,14 +138,22 @@ def deduce_previous_value_and_year(observations, year_target):
         numeric_obs_year = int(obs.ref_year.value)
         if numeric_obs_year < year_target:
             if result_value is None:
-                result_value = obs.value
+                result_value = _get_value_of_highest_available_computation(obs)
                 result_year = numeric_obs_year
             elif numeric_obs_year > result_year:
-                result_value = obs.value
+                result_value = _get_value_of_highest_available_computation(obs)
                 result_year = numeric_obs_year
             else:
                 pass
     return result_value, result_year
+
+
+def _get_value_of_highest_available_computation(observation):
+    for comp_type in ['scored', 'normalized']:
+        for comp in observation.computations:  # Scored will be tryed first
+            if comp.comp_type == comp_type:
+                return comp.value
+    return observation.value
 
 
 
