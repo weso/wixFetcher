@@ -84,17 +84,17 @@ class Parser(object):
             self._log.info("Primary observations parsed... ")
             self._log.info("Parsing process ended......")
 
-            # self._log.info("Dumizing...... ")
-            # dumizer = Dumizer(config=self._config,
-            #                   db_countries=areas_db,
-            #                   db_visualizations=visualizations_db,
-            #                   db_indicators=indicators_db,
-            #                   db_observations=observations_db)
-            # dumizer.introduce_fake_components()
-            # dumizer.introduce_fake_subindex()
-            # dumizer.introduce_fake_index()
-            #
-            # self._log.info("Dumized......")
+            self._log.info("Dumizing...... ")
+            dumizer = Dumizer(config=self._config,
+                              db_countries=areas_db,
+                              db_visualizations=visualizations_db,
+                              db_indicators=indicators_db,
+                              db_observations=observations_db)
+            dumizer.introduce_fake_components()
+            dumizer.introduce_fake_subindex()
+            dumizer.introduce_fake_index()
+
+            self._log.info("Dumized......")
 
 
         except BaseException as e:
