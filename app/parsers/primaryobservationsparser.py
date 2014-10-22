@@ -4,7 +4,7 @@ __author__ = 'Dani'
 from .utils import initialize_country_dict, look_for_country_name_exception, \
     build_label_for_observation, _is_empty_value, build_observation_uri, \
     deduce_previous_value_and_year, normalize_code_for_uri, initialize_indicator_dict,\
-    KEY_INDICATOR_NAME
+    KEY_INDICATOR_NAME, random_float
 from webindex.domain.model.observation.observation import create_observation
 from webindex.domain.model.observation.year import Year
 from utility.time import utc_now
@@ -131,7 +131,7 @@ class PrimaryObservationsParser(object):
                                         obs_type="raw",
                                         label=build_label_for_observation(indicator_year_dict[col].indicator,
                                                                           country_name,
-                                                                          indicator_year_dict[col].year,
+                                                                          2013,
                                                                           "raw"),
                                         status="raw",
                                         ref_indicator=None,
@@ -139,7 +139,8 @@ class PrimaryObservationsParser(object):
                                         ref_area=None,
                                         ref_year=None
                                         )
-            result.ref_year = Year(indicator_year_dict[col].year)
+            result.ref_year = Year(2013)
+            result.add_computation("normalized", random_float(-3,3))
             return result
 
 

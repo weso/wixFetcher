@@ -1,8 +1,19 @@
 __author__ = 'Dani'
+import random
 
 
 KEY_INDICATOR_NAME = "name"
 KEY_INDICATOR_REPUBLISH = "republish"
+
+
+
+def random_int(first, last):
+    return random.randint(first, last)
+
+
+def random_float(first, last):
+    return random.randint(first, last) + random.random()
+
 
 def initialize_country_dict(db_countries):
     """
