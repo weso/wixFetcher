@@ -1,4 +1,18 @@
 __author__ = 'Dani'
+import random
+
+
+KEY_INDICATOR_NAME = "name"
+KEY_INDICATOR_REPUBLISH = "republish"
+
+
+
+def random_int(first, last):
+    return random.randint(first, last)
+
+
+def random_float(first, last):
+    return random.randint(first, last) + random.random()
 
 
 def initialize_country_dict(db_countries):
@@ -27,13 +41,16 @@ def initialize_indicator_dict(db_indicators):
     result = {}
     indicator_dicts = db_indicators.find_indicators_indicators()['data']
     for a_dict in indicator_dicts:
-        result[a_dict['indicator']] = a_dict['name']
+        sub_dict = {}
+        sub_dict[KEY_INDICATOR_NAME] = a_dict['name']
+        sub_dict[KEY_INDICATOR_REPUBLISH] = a_dict['republish']
+        result[a_dict['indicator']] = sub_dict
     return result
 
 
 
 def look_for_country_name_exception(original):
-    if original in ['Republic of Korea', 'Republic Of Korea']:
+    if original in ['Republic of Korea', 'Republic Of Korea', 'Korea, Rep.']:
         return 'Korea (Rep. of)'
     elif original in ['Russia']:
         return "Russian Federation"
@@ -47,6 +64,12 @@ def look_for_country_name_exception(original):
         return 'Venezuela (Bolivarian Republic Of)'
     elif original in ['UAE']:
         return "United Arab Emirates"
+    elif original in ['Egypt, Arab Rep.']:
+        return "Egypt"
+    elif original in ['Yemen, Rep.']:
+        return 'Yemen'
+    elif original in ['Viet nam']:
+        return 'Viet Nam'
     else:
         return None
 

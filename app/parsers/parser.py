@@ -1,10 +1,10 @@
 __author__ = 'Dani'
 
 from ..extractor import Extractor
-from .secondaryindicatorsparser import SecondaryIndicatorsParser
-from .primaryindicatorsparser import PrimaryIndicatorsAndGroupsParser
+from .indicatorsparser import IndicatorsParser
 from .secondaryobservationsparser import SecondaryObservationsParser
 from .primaryobservationsparser import PrimaryObservationsParser
+from ..dumizer.dumizer import Dumizer
 from infrastructure.mongo_repos.indicator_repository import IndicatorRepository
 from infrastructure.mongo_repos.component_repository import ComponentRepository
 from infrastructure.mongo_repos.subindex_repository import SubindexRepository
@@ -41,28 +41,20 @@ class Parser(object):
 
 
             # Parsing indicatros
-            self._log.info("Parsing secondary indicators... ")
-            secondary_indicators_parser = SecondaryIndicatorsParser(log=self._log,
-                                                                    config=self._config,
-                                                                    db=indicators_db)
+            self._log.info("Parsing indicators... ")
+            secondary_indicators_parser = IndicatorsParser(log=self._log,
+                                                           config=self._config,
+                                                           db_indicator=indicators_db,
+                                                           db_component=components_db,
+                                                           db_subindex=subindexes_db,
+                                                           db_index=indexes_db)
             secondary_indicators_parser.\
-                parse_indicators_sheet(sheets[self._config.getint("PARSER",
-                                                                  "_SECONDARY_INDICATOR_METADATA_SHEET")],
-                                       sheets[self._config.getint("PARSER",
-                                                                  "_PRIMARY_INDICATOR_METADATA_SHEET")])
-            self._log.info("Secondary indicators parsed... ")
+                parse_indicators_sheet(sheet=sheets[self._config.getint("PARSER",
+                                                                        "_INDICATORS_SHEET")],
+                                       sheet_weights_groups=sheets[self._config.getint("PARSER",
+                                                                                       "_COMPONENT_WEIGHTS_SHEET")])
+            self._log.info("Indicators parsed... ")
 
-            self._log.info("Parsing primary indicators and groups... ")
-            primary_indicators_parser = PrimaryIndicatorsAndGroupsParser(log=self._log,
-                                                                         config=self._config,
-                                                                         db_indicator=indicators_db,
-                                                                         db_component=components_db,
-                                                                         db_subindex=subindexes_db,
-                                                                         db_index=indexes_db)
-            primary_indicators_parser.\
-                parse_indicators_sheet(sheets[self._config.getint("PARSER",
-                                                                  "_PRIMARY_INDICATOR_METADATA_SHEET")])
-            self._log.info("Primary indicators and groups parsed... ")
 
             # Parsing observations
 
@@ -74,7 +66,7 @@ class Parser(object):
                                                                         db_indicators=indicators_db,
                                                                         db_visualizations=visualizations_db)
             sec_indicators_count = 0
-            for i in range(self._config.getint("PARSER", "_FIRST_OBSERVATIONS_SHEET"), len(sheets) - 2):
+            for i in range(self._config.getint("PARSER", "_FIRST_OBSERVATIONS_SHEET"), len(sheets) - 1):
                 secondary_observations_parser.parse_data_sheet(sheets[i])
                 sec_indicators_count += 1
 
@@ -87,9 +79,22 @@ class Parser(object):
                                                                     db_countries=areas_db,
                                                                     db_indicators=indicators_db,
                                                                     db_visualizations=visualizations_db)
-            primary_observations_parser.parse_data_sheet(sheets[len(sheets) - 2])
+            primary_observations_parser.parse_data_sheet(sheets[len(sheets) - 1])
             self._log.info("Primary observations parsed... ")
             self._log.info("Parsing process ended......")
+
+            # self._log.info("Dumizing...... ")
+            # dumizer = Dumizer(config=self._config,
+            #                   db_countries=areas_db,
+            #                   db_visualizations=visualizations_db,
+            #                   db_indicators=indicators_db,
+            #                   db_observations=observations_db)
+            # dumizer.introduce_fake_components()
+            # dumizer.introduce_fake_subindex()
+            # dumizer.introduce_fake_index()
+            #
+            # self._log.info("Dumized......")
+
 
         except BaseException as e:
             print "Parsing process finalized abruptly. Check logs"  # Put this print in some other place

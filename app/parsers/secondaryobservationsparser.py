@@ -7,8 +7,14 @@ from webindex.domain.model.observation.year import Year
 from .utils import initialize_country_dict, look_for_country_name_exception,\
     build_label_for_observation, _is_empty_value,\
     build_observation_uri, initialize_indicator_dict, normalize_code_for_uri, \
-    deduce_previous_value_and_year
+    deduce_previous_value_and_year, KEY_INDICATOR_NAME, KEY_INDICATOR_REPUBLISH, random_float
 from utility.time import utc_now
+import sys
+
+
+
+def _add_dummy_computation_normalized(observation):
+    observation.add_computation("normalized", random_float(-3, 3))
 
 
 class SecondaryObservationsParser(object):
@@ -23,6 +29,7 @@ class SecondaryObservationsParser(object):
         self._country_dict = initialize_country_dict(db_countries)  # It will contain a dictionary of [name] --> [code]
         self._indicator_dict = initialize_indicator_dict(db_indicators)
         self._db_visualizations = db_visualizations
+
 
 
     def parse_data_sheet(self, sheet):
@@ -91,7 +98,8 @@ class SecondaryObservationsParser(object):
                                                          indicator_code=indicator_code,
                                                          indicator_name=self._get_indicator_name(indicator_code),
                                                          previous_value=previous_value,
-                                                         year_of_previous_value=previous_year)
+                                                         year_of_previous_value=previous_year,
+                                                         republish=self._get_republish(indicator_code))
             else:
                 self._log.info("Empty value in secondary observation: "
                                "sheet {}, column {}, country {}.".format(sheet_name,
@@ -134,7 +142,7 @@ class SecondaryObservationsParser(object):
                                          ref_area=None,
                                          ref_year=None)
         observation._ref_year = Year(year_value)
-        # self._add_propper_computation_to_observation(observation, computation_type)
+        _add_dummy_computation_normalized(observation)
         return observation
 
 
@@ -176,7 +184,15 @@ class SecondaryObservationsParser(object):
         """
         propper_indicator_code = normalize_code_for_uri(indicator_code)
         if propper_indicator_code in self._indicator_dict:
-            return self._indicator_dict[indicator_code]
+            return self._indicator_dict[propper_indicator_code][KEY_INDICATOR_NAME]
+        else:
+            self._log.error("Unrecognized indicator code: {}. Parsing process will continue anyway. ".format(indicator_code))
+            raise ValueError("Unrecognized indicator code : {}".format(indicator_code))
+
+    def _get_republish(self, indicator_code):
+        propper_indicator_code = normalize_code_for_uri(indicator_code)
+        if propper_indicator_code in self._indicator_dict:
+            return self._indicator_dict[propper_indicator_code][KEY_INDICATOR_REPUBLISH]
         else:
             self._log.error("Unrecognized indicator code: {}. Parsing process will continue anyway. ".format(indicator_code))
             raise ValueError("Unrecognized indicator code : {}".format(indicator_code))
@@ -273,7 +289,7 @@ class SecondaryObservationsParser(object):
         # if....
 
         #In case of not matching with any if...
-        self._log.warning("Unknown computation type extracted from sheet name: " + raw_computation_type + ".")
+        # self._log.warning("Unknown computation type extracted from sheet name: " + raw_computation_type + ".")
         return None  # This is temporally. For now, it works and puts a warning in the log.
 
     def _get_mean(self, observation):
