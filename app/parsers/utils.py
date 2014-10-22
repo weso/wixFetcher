@@ -1,6 +1,9 @@
 __author__ = 'Dani'
 
 
+KEY_INDICATOR_NAME = "name"
+KEY_INDICATOR_REPUBLISH = "republish"
+
 def initialize_country_dict(db_countries):
     """
     It returns a dictionary of the form [name] ==> [code_iso3] containing all the countries
@@ -27,7 +30,10 @@ def initialize_indicator_dict(db_indicators):
     result = {}
     indicator_dicts = db_indicators.find_indicators_indicators()['data']
     for a_dict in indicator_dicts:
-        result[a_dict['indicator']] = a_dict['name']
+        sub_dict = {}
+        sub_dict[KEY_INDICATOR_NAME] = a_dict['name']
+        sub_dict[KEY_INDICATOR_REPUBLISH] = a_dict['republish']
+        result[a_dict['indicator']] = sub_dict
     return result
 
 

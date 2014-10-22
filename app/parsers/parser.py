@@ -1,8 +1,7 @@
 __author__ = 'Dani'
 
 from ..extractor import Extractor
-from .secondaryindicatorsparser import SecondaryIndicatorsParser
-from .primaryindicatorsparser import PrimaryIndicatorsAndGroupsParser
+from .indicatorsparser import IndicatorsParser
 from .secondaryobservationsparser import SecondaryObservationsParser
 from .primaryobservationsparser import PrimaryObservationsParser
 from infrastructure.mongo_repos.indicator_repository import IndicatorRepository
@@ -42,12 +41,12 @@ class Parser(object):
 
             # Parsing indicatros
             self._log.info("Parsing indicators... ")
-            secondary_indicators_parser = SecondaryIndicatorsParser(log=self._log,
-                                                                    config=self._config,
-                                                                    db_indicator=indicators_db,
-                                                                    db_component=components_db,
-                                                                    db_subindex=subindexes_db,
-                                                                    db_index=indexes_db)
+            secondary_indicators_parser = IndicatorsParser(log=self._log,
+                                                           config=self._config,
+                                                           db_indicator=indicators_db,
+                                                           db_component=components_db,
+                                                           db_subindex=subindexes_db,
+                                                           db_index=indexes_db)
             secondary_indicators_parser.\
                 parse_indicators_sheet(sheet=sheets[self._config.getint("PARSER",
                                                                         "_INDICATORS_SHEET")],
@@ -55,17 +54,6 @@ class Parser(object):
                                                                                        "_COMPONENT_WEIGHTS_SHEET")])
             self._log.info("Indicators parsed... ")
 
-            # self._log.info("Parsing primary indicators and groups... ")
-            # primary_indicators_parser = PrimaryIndicatorsAndGroupsParser(log=self._log,
-            #                                                              config=self._config,
-            #                                                              db_indicator=indicators_db,
-            #                                                              db_component=components_db,
-            #                                                              db_subindex=subindexes_db,
-            #                                                              db_index=indexes_db)
-            # primary_indicators_parser.\
-            #     parse_indicators_sheet(sheets[self._config.getint("PARSER",
-            #                                                       "_PRIMARY_INDICATOR_METADATA_SHEET")])
-            # self._log.info("Primary indicators and groups parsed... ")
 
             # Parsing observations
 
@@ -77,7 +65,7 @@ class Parser(object):
                                                                         db_indicators=indicators_db,
                                                                         db_visualizations=visualizations_db)
             sec_indicators_count = 0
-            for i in range(self._config.getint("PARSER", "_FIRST_OBSERVATIONS_SHEET"), len(sheets) - 2):
+            for i in range(self._config.getint("PARSER", "_FIRST_OBSERVATIONS_SHEET"), len(sheets) - 1):
                 secondary_observations_parser.parse_data_sheet(sheets[i])
                 sec_indicators_count += 1
 
@@ -90,7 +78,7 @@ class Parser(object):
                                                                     db_countries=areas_db,
                                                                     db_indicators=indicators_db,
                                                                     db_visualizations=visualizations_db)
-            primary_observations_parser.parse_data_sheet(sheets[len(sheets) - 2])
+            primary_observations_parser.parse_data_sheet(sheets[len(sheets) - 1])
             self._log.info("Primary observations parsed... ")
             self._log.info("Parsing process ended......")
 

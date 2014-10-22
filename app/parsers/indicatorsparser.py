@@ -9,7 +9,7 @@ from webindex.domain.model.index import create_index
 from utility.time import utc_now
 
 
-class SecondaryIndicatorsParser(object):
+class IndicatorsParser(object):
 
 
     def __init__(self, log, db_indicator, db_component, db_subindex, db_index, config):
@@ -176,7 +176,7 @@ class SecondaryIndicatorsParser(object):
         for irow in range(0, sheet.nrows):
             if sheet.row(irow)[name_col].value.upper() == name.upper():
                 try:
-                    return float(sheet.row(irow)[weight_col])
+                    return float(sheet.row(irow)[weight_col].value)
                 except BaseException as e:
                     self._log.error("Wrong weight for a grouped entity: {}".format(name))
                     raise ValueError("Wrong weight for a grouped entity: {}".format(name))
