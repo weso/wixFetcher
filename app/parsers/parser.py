@@ -12,6 +12,7 @@ from infrastructure.mongo_repos.index_repository import IndexRepository
 from infrastructure.mongo_repos.observation_repository import ObservationRepository
 from infrastructure.mongo_repos.area_repository import AreaRepository
 from infrastructure.mongo_repos.visualization_repository import VisualizationRepository
+import traceback
 
 
 class Parser(object):
@@ -97,6 +98,7 @@ class Parser(object):
 
 
         except BaseException as e:
+            print traceback.format_exc()
             print "Parsing process finalized abruptly. Check logs"  # Put this print in some other place
             self._log.error("Parsing process finalized abruptly. Cause: {}".format(str(e)))
 
