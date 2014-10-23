@@ -97,8 +97,8 @@ class SecondaryObservationsParser(object):
                                                          area_name=self._get_std_country_name(country_name),
                                                          indicator_code=indicator_code,
                                                          indicator_name=self._get_indicator_name(indicator_code),
-                                                         previous_value=previous_value,
-                                                         year_of_previous_value=previous_year,
+                                                         previous_value=None,  # TODO
+                                                         year_of_previous_value=None,  # TODO
                                                          republish=self._get_republish(indicator_code))
             else:
                 self._log.info("Empty value in secondary observation: "

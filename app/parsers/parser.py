@@ -84,6 +84,7 @@ class Parser(object):
             self._log.info("Primary observations parsed... ")
             self._log.info("Parsing process ended......")
 
+
             self._log.info("Dumizing...... ")
             dumizer = Dumizer(config=self._config,
                               db_countries=areas_db,
