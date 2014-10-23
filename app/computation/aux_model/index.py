@@ -4,7 +4,7 @@ __author__ = 'Miguel'
 class Index(object):
 
     def __init__(self):
-        self._label = "Index"
+        self._label = "INDEX"
         self._subindexes = []
 
     def add_subindex(self, subindex):
