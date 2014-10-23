@@ -1,4 +1,6 @@
+from __future__ import division
 __author__ = 'Miguel'
+
 
 import xlrd
 import numpy
@@ -40,6 +42,7 @@ class ComputationValidation(object):
             subindex = Subindex(subindex_document["indicator"])
             self._index.add_subindex(subindex)
             components_document = self._indicator_repo.find_indicators_components(subindex_document)
+            print "\t" + subindex.code
             if not components_document["success"]:
                 self._log("Could not retrieve components from db")
                 return
@@ -51,11 +54,13 @@ class ComputationValidation(object):
                 if not indicators_document["success"]:
                     self._log("Could not retrieve indicators from db")
                     return
+                print "\t\t" + component.code
                 for indicator_document in indicators_document["data"]:
                     indicator = Indicator(indicator_document["indicator"], indicator_document["name"],
                                           indicator_document["type"], indicator_document["high_low"],
                                           indicator_document["weight"])
                     component.add_indicator(indicator)
+                    print "\t\t\t" + indicator.code
 
     def _get_imputed_observations(self, year):
         indicators_document = self._indicator_repo.find_indicators_indicators()
@@ -79,7 +84,8 @@ class ComputationValidation(object):
                                               observation_document["year"], observation_document["value"])
                     self._observations[observation_document["_id"]] = observation
                     print "\t\t" + "Normalizando observacion " + observation.indicator_code + " " + observation.area + " " + observation.year
-                    observation.normalized_value = self._normalize_observation_value(observation, mean, stdev)
+                    #observation.normalized_value = self._normalize_observation_value(observation, mean, stdev)
+                    observation.normalized_value = observation_document["normalized"]
                     if observation.normalized_value is not None:
                         observation.weighed_value = self._apply_weight_to_observation_value(observation)
                         print "\t\t\t" + str(observation.normalized_value) + "   " + str(observation.weighed_value)
@@ -138,18 +144,23 @@ class ComputationValidation(object):
             for component_document in components_document:
                 indicators_document = self._indicator_repo.find_indicator_children(component_document["indicator"])
                 _sum = 0
+                unused_count = 0
                 for indicator_document in indicators_document:
                     observation_document = self._observations_repo.find_observations(
                         indicator_document["indicator"],
                         area_document["iso3"],
                         year)
-                    if observation_document["success"]:
-                        if len(observation_document["data"]) == 0:
-                            print "ERROR CON " + indicator_document["indicator"]
+                    if observation_document["success"] and len(observation_document["data"]) > 0:
                         observation_document = observation_document["data"][0]
                         observation = self._observations[observation_document["_id"]]
-                        _sum += observation.weighed_value
-                component_mean = _sum / len(indicators_document)
-                print "\t" + component_document["indicator"] + ": " + str(component_mean)
+                        if observation.normalized_value != 0.0:
+                            _sum += observation.weighed_value
+                        else:
+                            unused_count += 1
+                    elif len(observation_document["data"]) == 0:
+                        unused_count += 1
+                component_mean = _sum / (len(indicators_document) - unused_count)
+                print "\t" + component_document["indicator"] + ": " + str(component_mean) + "    (" + str(_sum) + ")-->(" + str((len(indicators_document) - unused_count)) + ")"
                 component = self._components[component_document["_id"]]
                 component.grouped_values[area_document["iso3"]] = component_mean
+

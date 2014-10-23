@@ -7,6 +7,7 @@ class Subindex(object):
         self._code = code
         self._weight = weight
         self._components = []
+        self._grouped_values = dict()
 
     def add_component(self, component):
         self._components.append(component)
@@ -30,3 +31,7 @@ class Subindex(object):
     @property
     def components(self):
         return self._components
+
+    @property
+    def grouped_values(self):
+        return self._grouped_values
