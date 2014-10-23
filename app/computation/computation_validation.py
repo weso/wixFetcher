@@ -25,25 +25,37 @@ class ComputationValidation(object):
         print "Inicializando indice"
         self._initialize_index()
         print "Cogiendo observaciones"
-        self._get_imputed_observations(u"2014")
+        self._get_imputed_observations(u"2013")
+        print "\n\nAgrupando en componentes"
+        self._calculate_component_grouped_value(u"2013")
 
     def _initialize_index(self):
         self._index = Index()
-        subindexes = self._indicator_repo.find_indicators_indicators()
-        if subindexes["success"]:
-            for subindex in subindexes["data"]:
-                subindex_object = Subindex(subindex["indicator"])
-                self._index.add_subindex(subindex_object)
-                components = self._indicator_repo.find_indicators_components(subindex)
-                for component in components["data"]:
-                    component_object = Component(component["indicator"])
-                    subindex_object.add_component(component_object)
-                    self._components[component["_id"]] = component_object
-                    indicators = self._indicator_repo.find_indicators_indicators(component)
-                    for indicator in indicators["data"]:
-                        indicator_object = Indicator(indicator["indicator"], indicator["name"], indicator["type"],
-                                                     indicator["high_low"], indicator["weight"])
-                        component_object.add_indicator(indicator_object)
+        subindexes_document = self._indicator_repo.find_indicators_sub_indexes()
+        if not subindexes_document["success"]:
+            self._log.error("Could not retrieve subindexes from db")
+            return
+        print "INDEX"
+        for subindex_document in subindexes_document["data"]:
+            subindex = Subindex(subindex_document["indicator"])
+            self._index.add_subindex(subindex)
+            components_document = self._indicator_repo.find_indicators_components(subindex_document)
+            if not components_document["success"]:
+                self._log("Could not retrieve components from db")
+                return
+            for component_document in components_document["data"]:
+                component = Component(component_document["indicator"])
+                subindex.add_component(component)
+                self._components[component_document["_id"]] = component
+                indicators_document = self._indicator_repo.find_indicators_indicators(component_document)
+                if not indicators_document["success"]:
+                    self._log("Could not retrieve indicators from db")
+                    return
+                for indicator_document in indicators_document["data"]:
+                    indicator = Indicator(indicator_document["indicator"], indicator_document["name"],
+                                          indicator_document["type"], indicator_document["high_low"],
+                                          indicator_document["weight"])
+                    component.add_indicator(indicator)
 
     def _get_imputed_observations(self, year):
         indicators_document = self._indicator_repo.find_indicators_indicators()
@@ -52,20 +64,15 @@ class ComputationValidation(object):
             return
         indicators_document = indicators_document["data"]
         for indicator_document in indicators_document:
-            year = u'2014'
             observations_document = self._observations_repo.find_observations(indicator_document["indicator"],
-                                                                              None, year)
-            if len(observations_document["data"]) == 0:
-                year = u'2013'
-                observations_document = self._observations_repo.find_observations(indicator_document["indicator"],
                                                                               None, year)
             if not observations_document["success"]:
                 self._log.error("Could not get observations of " + indicator_document["indicator"]
                                 + " indicator from db for year " + year)
                 return
             if len(observations_document["data"]) > 0:
-                mean, stdev = self._get_obs_mean_and_stdev(indicator_document["indicator"], year)
                 observations_document = observations_document["data"]
+                mean, stdev = self._get_obs_mean_and_stdev(observations_document)
                 print "\tIndicador " + indicator_document["indicator"] + ". " + str(len(observations_document)) + " observaciones"
                 for observation_document in observations_document:
                     observation = Observation(observation_document["indicator"], observation_document["area"],
@@ -104,12 +111,8 @@ class ComputationValidation(object):
         weighed_value = indicator_document["weight"] * observation.normalized_value
         return weighed_value
 
-    def _get_obs_mean_and_stdev(self, indicator_code, year):
-        observations_document = self._observations_repo.find_observations(indicator_code, None, year)
-        if not observations_document["success"]:
-            self._log.error("Could not get observations of " + indicator_code + " indicator from db for year " + year)
-            return
-        observations_document = observations_document["data"]
+    @staticmethod
+    def _get_obs_mean_and_stdev(observations_document):
         values = []
         for observation_document in observations_document:
             values.append(float(observation_document["value"]))
@@ -119,27 +122,34 @@ class ComputationValidation(object):
         print "\tSTD: " + str(stdev)
         return mean, stdev
 
-    def _calculate_component_grouped_value(self):
+    def _calculate_component_grouped_value(self, year):
         areas_document = self._areas_repo.find_countries("name")
-        if areas_document["success"]:
-            areas_document = areas_document["data"]
-            components_document = self._indicator_repo.find_indicators_components()
-            if components_document["success"]:
-                components_document = components_document["data"]
-                for area_document in areas_document:
-                    for component_document in components_document:
-                        indicators_document = self._indicator_repo.find_indicator_children(
-                            component_document["indicator"])
-                        _sum = 0
-                        for indicator_document in indicators_document:
-                            observation_document = self._observations_repo.find_observations(
-                                indicator_document["indicator"],
-                                area_document["iso3"],
-                                "2013")
-                            if observation_document["success"]:
-                                observation_document = observation_document["data"][0]
-                                observation = self._observations[observation_document["_id"]]
-                                _sum += observation.weighed_value
-                        component_mean = _sum / len(indicators_document)
-                        component = self._components[component_document["_id"]]
-                        component.grouped_values[area_document["iso3"]] = component_mean
+        components_document = self._indicator_repo.find_indicators_components()
+        if not areas_document["success"]:
+            self._log.error("Could not retrieve areas from db")
+            return
+        if not components_document["success"]:
+            self._log.error("Could not retrieve components from db")
+            return
+        areas_document = areas_document["data"]
+        components_document = components_document["data"]
+        for area_document in areas_document:
+            print area_document["iso3"]
+            for component_document in components_document:
+                indicators_document = self._indicator_repo.find_indicator_children(component_document["indicator"])
+                _sum = 0
+                for indicator_document in indicators_document:
+                    observation_document = self._observations_repo.find_observations(
+                        indicator_document["indicator"],
+                        area_document["iso3"],
+                        year)
+                    if observation_document["success"]:
+                        if len(observation_document["data"]) == 0:
+                            print "ERROR CON " + indicator_document["indicator"]
+                        observation_document = observation_document["data"][0]
+                        observation = self._observations[observation_document["_id"]]
+                        _sum += observation.weighed_value
+                component_mean = _sum / len(indicators_document)
+                print "\t" + component_document["indicator"] + ": " + str(component_mean)
+                component = self._components[component_document["_id"]]
+                component.grouped_values[area_document["iso3"]] = component_mean
