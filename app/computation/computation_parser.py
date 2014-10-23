@@ -23,7 +23,7 @@ class ComputationParser(object):
     def run(self):
         computations_sheet = get_sheet_by_name(self._config.get("EXCEL", "COMPUTATIONS_FILE_NAME"),
                                                self._config.get("EXCEL", "COMPUTATIONS_SHEET_NAME"))
-        self._get_indicators_normalized_values(computations_sheet)
+        #self._get_indicators_normalized_values(computations_sheet)
         self._get_components_values(computations_sheet)
         self._get_subindexes_values(computations_sheet)
         self._get_index_values(computations_sheet)
@@ -61,6 +61,10 @@ class ComputationParser(object):
                     if is_same_component(component_document["name"],
                                          str(computations_sheet.row(components_row)[i].value)):
                         print component_document["name"]
+
+                        weight = float(computations_sheet.row(int(self._config.get("EXCEL",
+                                                                                   "COMPONENTS_WEIGHTS_ROW")))[i].value)
+                        self._indicator_repo.update_indicator_weight(component_document["indicator"], weight)
                         self._insert_country_values(computations_sheet,
                                                     int(self._config.get("EXCEL", "COUNTRIES_COMPONENTS_START_ROW")),
                                                     int(self._config.get("EXCEL",
@@ -84,6 +88,9 @@ class ComputationParser(object):
                     if is_same_subindex(subindex_document["name"],
                                         str(computations_sheet.row(subindexes_row)[i].value)):
                         print subindex_document["name"]
+                        weight = float(computations_sheet.row(int(self._config.get("EXCEL",
+                                                                                   "SUBINDEXES_WEIGHTS_ROW")))[i].value)
+                        self._indicator_repo.update_indicator_weight(subindex_document["indicator"], weight)
                         self._insert_country_values(computations_sheet,
                                                     int(self._config.get("EXCEL", "COUNTRIES_SUBINDEXES_START_ROW")),
                                                     int(self._config.get("EXCEL",
