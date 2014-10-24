@@ -24,9 +24,9 @@ class ComputationParser(object):
         computations_sheet = get_sheet_by_name(self._config.get("EXCEL", "COMPUTATIONS_FILE_NAME"),
                                                self._config.get("EXCEL", "COMPUTATIONS_SHEET_NAME"))
         self._get_indicators_normalized_values(computations_sheet)
-        self._get_components_values(computations_sheet)
-        self._get_subindexes_values(computations_sheet)
-        self._get_index_values(computations_sheet)
+        # self._get_components_values(computations_sheet)
+        # self._get_subindexes_values(computations_sheet)
+        # self._get_index_values(computations_sheet)
 
     def _get_indicators_normalized_values(self, computations_sheet):
         more_indicators = True

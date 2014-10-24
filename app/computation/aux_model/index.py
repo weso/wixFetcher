@@ -6,7 +6,8 @@ class Index(object):
     def __init__(self):
         self._label = "INDEX"
         self._subindexes = []
-        self._grouped_values = dict()
+        self._scored_values = dict()
+        self._ranked_values = dict()
 
     def add_subindex(self, subindex):
         self._subindexes.append(subindex)
@@ -24,5 +25,9 @@ class Index(object):
         return self._subindexes
 
     @property
-    def grouped_values(self):
-        return self._grouped_values
+    def scored_values(self):
+        return self._scored_values
+
+    @property
+    def ranked_values(self):
+        return self._ranked_values

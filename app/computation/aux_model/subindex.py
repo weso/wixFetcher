@@ -8,6 +8,7 @@ class Subindex(object):
         self._weight = weight
         self._components = []
         self._grouped_values = dict()
+        self._scored_values = dict()
 
     def add_component(self, component):
         self._components.append(component)
@@ -35,3 +36,7 @@ class Subindex(object):
     @property
     def grouped_values(self):
         return self._grouped_values
+
+    @property
+    def scored_values(self):
+        return self._scored_values

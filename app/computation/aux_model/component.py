@@ -8,6 +8,7 @@ class Component(object):
         self._weight = weight
         self._indicators = []
         self._grouped_values = dict()
+        self._scored_values = dict()
 
     def add_indicator(self, indicator):
         self._indicators.append(indicator)
@@ -35,3 +36,7 @@ class Component(object):
     @property
     def grouped_values(self):
         return self._grouped_values
+
+    @property
+    def scored_values(self):
+        return self._scored_values
