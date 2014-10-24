@@ -99,8 +99,6 @@ class ComputationValidation(object):
                     if (observation_document["normalized"] - 0.07) <= observation.normalized_value \
                             <= (observation_document["normalized"] + 0.07):
                         observation.normalized_value = observation_document["normalized"]
-                    else:
-                        print "MIERDAAAAA"
                     if observation.normalized_value is not None:
                         observation.weighed_value = self._apply_weight_to_observation_value(observation)
                         print "\t\t\t" + str(observation.normalized_value) + "   " + str(observation.weighed_value)
