@@ -24,9 +24,9 @@ class ComputationParser(object):
         computations_sheet = get_sheet_by_name(self._config.get("EXCEL", "COMPUTATIONS_FILE_NAME"),
                                                self._config.get("EXCEL", "COMPUTATIONS_SHEET_NAME"))
         self._get_indicators_normalized_values(computations_sheet)
-        self._get_components_values(computations_sheet)
-        self._get_subindexes_values(computations_sheet)
-        self._get_index_values(computations_sheet)
+        # self._get_components_values(computations_sheet)
+        # self._get_subindexes_values(computations_sheet)
+        # self._get_index_values(computations_sheet)
 
     def _get_indicators_normalized_values(self, computations_sheet):
         more_indicators = True
@@ -143,13 +143,13 @@ class ComputationParser(object):
                             if str(ranked_value) not in ["", " ", None]:
                                 computation = Computation("ranked", float(ranked_value))
                             observation, observation_uri = self._create_obs_and_uri(indicator_document,
-                                                                                    country_document, scored_value,
+                                                                                    country_document_aux, scored_value,
                                                                                     computation, "scored")
                             self._observations_repo.insert_observation(observation=observation,
                                                                        observation_uri=observation_uri,
-                                                                       area_iso3_code=country_document["iso3"],
+                                                                       area_iso3_code=country_document_aux["iso3"],
                                                                        indicator_code=indicator_document["indicator"],
-                                                                       area_name=country_document["name"],
+                                                                       area_name=country_document_aux["name"],
                                                                        indicator_name=indicator_document["name"])
             i += 1
 
@@ -188,13 +188,13 @@ class ComputationParser(object):
                             if str(scored_value) not in ["", " ", None]:
                                 computation = Computation("scored", float(scored_value))
                             observation, observation_uri = self._create_obs_and_uri(indicator_document,
-                                                                                    country_document, value,
+                                                                                    country_document_aux, value,
                                                                                     computation, "normalized")
                             self._observations_repo.insert_observation(observation=observation,
                                                                        observation_uri=observation_uri,
-                                                                       area_iso3_code=country_document["iso3"],
+                                                                       area_iso3_code=country_document_aux["iso3"],
                                                                        indicator_code=indicator_document["indicator"],
-                                                                       area_name=country_document["name"],
+                                                                       area_name=country_document_aux["name"],
                                                                        indicator_name=indicator_document["name"])
             i += 1
             j += 1
@@ -220,7 +220,7 @@ class ComputationParser(object):
                         value = computations_sheet.row(i)[column].value
                         if str(value) not in ["", " ", None]:
                             print "\t" + indicator_document["indicator"] + " " + country_document_aux["iso3"] + " " + str(float(value))
-                            self._observations_repo.normalize_plain_observation(country_document["iso3"],
+                            self._observations_repo.normalize_plain_observation(country_document_aux["iso3"],
                                                                                 indicator_document["indicator"], "2013",
                                                                                 float(value))
 
