@@ -33,6 +33,8 @@ class ComputationValidation(object):
         self._calculate_component_grouped_value(u"2013")
         print "\n\nAgrupando en subindices"
         self._calculate_subindex_grouped_value(u"2013")
+        print "\n\nCalculando indice"
+        self._calculate_index(u"2013")
 
     def _initialize_index(self):
         self._index = Index()
@@ -193,3 +195,18 @@ class ComputationValidation(object):
                 subindex = self._subindexes[subindex_document["_id"]]
                 subindex.grouped_values[area_document["iso3"]] = subindex_mean
 
+    def _calculate_index(self, year):
+        areas_document = self._areas_repo.find_countries("name")
+        subindexes = self._index.subindexes
+        if not areas_document["success"]:
+            self._log.error("Could not retrieve areas from db")
+            return
+        areas_document = areas_document["data"]
+        for area_document in areas_document:
+
+            _sum = 0
+            for subindex in subindexes:
+                _sum =+ subindex.grouped_values[area_document["iso3"]] * subindex.weight
+            index_value = _sum
+            print "\t" + area_document["iso3"] + ": INDEX :" + str(index_value)
+            self._index.grouped_values[area_document["iso3"]] = index_value
