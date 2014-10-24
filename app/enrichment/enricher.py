@@ -19,6 +19,7 @@ class Enricher(object):
 
     def enrich_secondary_indicator_obs(self):
         self._enrich_a_level_of_indicator_obs("Secondary", "normalized")
+        self._enrich_a_level_of_indicator_obs("Primary", "normalized")
 
     def enrich_component_obs(self):
         self._enrich_a_level_of_indicator_obs("Component", "scored")
@@ -30,11 +31,12 @@ class Enricher(object):
         self._enrich_a_level_of_indicator_obs("Index", "scored")
 
     def _enrich_a_level_of_indicator_obs(self, level, computation_type):
-        print level, computation_type
+        print level, computation_type, "-------------------------------"
         indicator_codes = self._get_indicator_codes(level)
         country_codes = self._get_country_codes()
         for ind_code in indicator_codes:
             for iso_code in country_codes:
+                print ind_code, iso_code
                 observation_dicts = self._db_observations.find_observations(indicator_code=ind_code,
                                                                             area_code=iso_code)['data']
                 self._enrich_observations_of_same_iso_and_ind(observation_dicts, computation_type)
@@ -52,8 +54,12 @@ class Enricher(object):
             if value is not None:
                 value = round(value, 2)
             values.append(value)
-        self._db_visualizations
-
+        if len(observation_dicts) > 0:
+            self._db_visualizations.insert_built_visualization(array_values=values,
+                                                               area_iso3_code=observation_dicts[0]['area'],
+                                                               area_name=observation_dicts[0]['area_name'],
+                                                               indicator_code=observation_dicts[0]['indicator'],
+                                                               indicator_name=observation_dicts[0]['indicator_name'])
 
     @staticmethod
     def _look_for_a_value_for_a_year(year_target, observations, desired_type):
@@ -114,13 +120,14 @@ class Enricher(object):
         return result
 
 
-    def _get_indicator_codes(self, type):
+    def _get_indicator_codes(self, _type):
         result = []
         indicator_dicts = self._db_indicators.find_indicators()['data']
         for a_dict in indicator_dicts:
-            if a_dict['type'] == type:
+            if a_dict['type'] == _type:
                 result.append(a_dict['indicator'])
         return result
+
 
     def _get_country_codes(self):
         result = []

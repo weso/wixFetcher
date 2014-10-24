@@ -106,11 +106,11 @@ class SecondaryObservationsParser(object):
                                                                          str(i + 1),
                                                                          country_name))
             i += 1
-        self._db_visualizations.insert_visualization(observations=country_parsed_obs,
-                                                     area_iso3_code=area_code,
-                                                     area_name=self._get_std_country_name(country_name),
-                                                     indicator_code=indicator_code,
-                                                     indicator_name=self._get_indicator_name(indicator_code))
+        # self._db_visualizations.insert_visualization(observations=country_parsed_obs,
+        #                                              area_iso3_code=area_code,
+        #                                              area_name=self._get_std_country_name(country_name),
+        #                                              indicator_code=indicator_code,
+        #                                              indicator_name=self._get_indicator_name(indicator_code))
         return obs_count
 
 

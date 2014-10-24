@@ -23,7 +23,7 @@ class Dumizer(object):
         for comp_code in comp_dicts:
             for country_name in country_dicts:
                 observations = []
-                for year in range(2007, 2014):
+                for year in range(2007, 2013):
                     model_obs = self._create_comp_or_subindex_obs(year)
                     observations.append(model_obs)
                     previous_value, previous_year = deduce_previous_value_and_year(observations, year)
@@ -39,11 +39,11 @@ class Dumizer(object):
                                                             previous_value=previous_value,
                                                             year_of_previous_value=previous_year,
                                                             republish=True)
-                self.db_visualizations.insert_visualization(observations=observations,
-                                                            area_iso3_code=country_dicts[country_name],
-                                                            area_name=country_name,
-                                                            indicator_code=comp_code,
-                                                            indicator_name=comp_dicts[comp_code])
+                # self.db_visualizations.insert_visualization(observations=observations,
+                #                                             area_iso3_code=country_dicts[country_name],
+                #                                             area_name=country_name,
+                #                                             indicator_code=comp_code,
+                #                                             indicator_name=comp_dicts[comp_code])
 
 
 
@@ -53,7 +53,7 @@ class Dumizer(object):
         for subin_code in subin_dicts:
             for country_name in country_dicts:
                 observations = []
-                for year in range(2007, 2014):
+                for year in range(2007, 2013):
                     model_obs = self._create_comp_or_subindex_obs(year)
                     observations.append(model_obs)
                     previous_value, previous_year = deduce_previous_value_and_year(observations, year)
@@ -69,11 +69,11 @@ class Dumizer(object):
                                                             previous_value=previous_value,
                                                             year_of_previous_value=previous_year,
                                                             republish=True)
-                self.db_visualizations.insert_visualization(observations=observations,
-                                                            area_iso3_code=country_dicts[country_name],
-                                                            area_name=country_name,
-                                                            indicator_code=subin_code,
-                                                            indicator_name=subin_dicts[subin_code])
+                # self.db_visualizations.insert_visualization(observations=observations,
+                #                                             area_iso3_code=country_dicts[country_name],
+                #                                             area_name=country_name,
+                #                                             indicator_code=subin_code,
+                #                                             indicator_name=subin_dicts[subin_code])
 
 
     def introduce_fake_index(self):
@@ -82,7 +82,7 @@ class Dumizer(object):
         for index_code in index_dicts:
             for country_name in country_dicts:
                 observations = []
-                for year in range(2007, 2014):
+                for year in range(2007, 2013):
                     model_obs = self._create_index_obs(year)
                     observations.append(model_obs)
                     previous_value, previous_year = deduce_previous_value_and_year(observations, year)
@@ -98,11 +98,11 @@ class Dumizer(object):
                                                             previous_value=previous_value,
                                                             year_of_previous_value=previous_year,
                                                             republish=True)
-                self.db_visualizations.insert_visualization(observations=observations,
-                                                            area_iso3_code=country_dicts[country_name],
-                                                            area_name=country_name,
-                                                            indicator_code=index_code,
-                                                            indicator_name=index_dicts[index_code])
+                # self.db_visualizations.insert_visualization(observations=observations,
+                #                                             area_iso3_code=country_dicts[country_name],
+                #                                             area_name=country_name,
+                #                                             indicator_code=index_code,
+                #                                             indicator_name=index_dicts[index_code])
 
 
 
