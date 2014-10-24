@@ -28,15 +28,15 @@ class ComputationValidation(object):
     def run(self):
         print "Inicializando indice"
         self._initialize_index()
-        print "Cogiendo observaciones"
+        print "\n\nCogiendo observaciones"
         self._get_imputed_observations(u"2013")
         print "\n\nAgrupando en componentes"
         self._calculate_component_grouped_value(u"2013")
-        print "\n\nScoreando en componentes"
+        print "\n\nScoreando componentes"
         self._calculate_component_scored_value(u"2013")
         print "\n\nAgrupando en subindices"
         self._calculate_subindex_grouped_value(u"2013")
-        print "\n\nScoreando en subindices"
+        print "\n\nScoreando subindices"
         self._calculate_subindex_scored_value(u"2013")
         print "\n\nCalculando indice"
         self._calculate_index(u"2013")
@@ -47,13 +47,11 @@ class ComputationValidation(object):
         if not subindexes_document["success"]:
             self._log.error("Could not retrieve subindexes from db")
             return
-        print "INDEX"
         for subindex_document in subindexes_document["data"]:
             subindex = Subindex(subindex_document["indicator"], subindex_document["weight"])
             self._index.add_subindex(subindex)
             self._subindexes[subindex_document["_id"]] = subindex
             components_document = self._indicator_repo.find_indicators_components(subindex_document)
-            print "\t" + subindex.code
             if not components_document["success"]:
                 self._log("Could not retrieve components from db")
                 return
@@ -65,13 +63,11 @@ class ComputationValidation(object):
                 if not indicators_document["success"]:
                     self._log("Could not retrieve indicators from db")
                     return
-                print "\t\t" + component.code
                 for indicator_document in indicators_document["data"]:
                     indicator = Indicator(indicator_document["indicator"], indicator_document["name"],
                                           indicator_document["type"], indicator_document["high_low"],
                                           indicator_document["weight"])
                     component.add_indicator(indicator)
-                    print "\t\t\t" + indicator.code
 
     def _get_imputed_observations(self, year):
         indicators_document = self._indicator_repo.find_indicators_indicators()
@@ -89,19 +85,16 @@ class ComputationValidation(object):
             if len(observations_document["data"]) > 0:
                 observations_document = observations_document["data"]
                 mean, stdev = self._get_obs_mean_and_stdev(observations_document)
-                print "\tIndicador " + indicator_document["indicator"] + ". " + str(len(observations_document)) + " observaciones"
                 for observation_document in observations_document:
                     observation = Observation(observation_document["indicator"], observation_document["area"],
                                               observation_document["year"], observation_document["value"])
                     self._observations[observation_document["_id"]] = observation
-                    print "\t\t" + "Normalizando observacion " + observation.indicator_code + " " + observation.area + " " + observation.year
                     observation.normalized_value = self._normalize_observation_value(observation, mean, stdev)
                     if (observation_document["normalized"] - 0.07) <= observation.normalized_value \
                             <= (observation_document["normalized"] + 0.07):
                         observation.normalized_value = observation_document["normalized"]
                     if observation.normalized_value is not None:
                         observation.weighed_value = self._apply_weight_to_observation_value(observation)
-                        print "\t\t\t" + str(observation.normalized_value) + "   " + str(observation.weighed_value)
             else:
                 self._log.warning("There are no observations of " + indicator_document["indicator"]
                                   + " indicator for year " + year)
@@ -137,8 +130,6 @@ class ComputationValidation(object):
             values.append(float(observation_document["value"]))
         mean = numpy.mean(values, 0)
         stdev = numpy.std(values, 0)
-        print "\tMean: " + str(mean)
-        print "\tSTD: " + str(stdev)
         return mean, stdev
 
     def _calculate_component_grouped_value(self, year):
@@ -153,7 +144,6 @@ class ComputationValidation(object):
         areas_document = areas_document["data"]
         components_document = components_document["data"]
         for area_document in areas_document:
-            print area_document["iso3"]
             for component_document in components_document:
                 indicators_document = self._indicator_repo.find_indicator_children(component_document["indicator"])
                 _sum = 0
@@ -173,7 +163,6 @@ class ComputationValidation(object):
                     elif len(observation_document["data"]) == 0:
                         unused_count += 1
                 component_mean = _sum / (len(indicators_document) - unused_count)
-                print "\t" + component_document["indicator"] + ": " + str(component_mean) + "   " + str(_sum) + "   " + str(len(indicators_document) - unused_count)
                 component = self._components[component_document["_id"]]
                 component.grouped_values[area_document["iso3"]] = component_mean
 
@@ -186,11 +175,9 @@ class ComputationValidation(object):
             _max = max(component.grouped_values.values())
             _min = min(component.grouped_values.values())
             _range = _max - _min
-            print "\t" + component.code
             for area_document in areas_document["data"]:
                 value = component.grouped_values[area_document["iso3"]]
                 component.scored_values[area_document["iso3"]] = (value - _min) / _range * 100
-                print "\t\t" + area_document["iso3"] + "   " + str(_max) + " " + str(_min) + " " + str(_range) + "    " + str((value - _min) / _range * 100)
 
     def _calculate_subindex_grouped_value(self, year):
         areas_document = self._areas_repo.find_countries("name")
@@ -204,7 +191,6 @@ class ComputationValidation(object):
         areas_document = areas_document["data"]
         subindexes_document = subindexes_document["data"]
         for area_document in areas_document:
-            print area_document["iso3"]
             for subindex_document in subindexes_document:
                 components_document = self._indicator_repo.find_indicator_children(subindex_document["indicator"])
                 _sum = 0
@@ -212,7 +198,6 @@ class ComputationValidation(object):
                     component = self._components[component_document["_id"]]
                     _sum += component.grouped_values[area_document["iso3"]] * component.weight
                 subindex_mean = _sum
-                print "\t" + subindex_document["indicator"] + ": " + str(subindex_mean)
                 subindex = self._subindexes[subindex_document["_id"]]
                 subindex.grouped_values[area_document["iso3"]] = subindex_mean
 
@@ -225,11 +210,9 @@ class ComputationValidation(object):
             _max = max(subindex.grouped_values.values())
             _min = min(subindex.grouped_values.values())
             _range = _max - _min
-            print "\t" + subindex.code
             for area_document in areas_document["data"]:
                 value = subindex.grouped_values[area_document["iso3"]]
                 subindex.scored_values[area_document["iso3"]] = (value - _min) / _range * 100
-                print "\t\t" + area_document["iso3"] + "   " + str(_max) + " " + str(_min) + " " + str(_range) + "    " + str((value - _min) / _range * 100)
 
     def _calculate_index(self, year):
         areas_document = self._areas_repo.find_countries("name")
@@ -248,5 +231,22 @@ class ComputationValidation(object):
         for area_document in areas_document["data"]:
             value = self._index.scored_values[area_document["iso3"]]
             self._index.scored_values[area_document["iso3"]] = (value - _min) / _range * 100
-            print "\t\t" + area_document["iso3"] + "   " + str(_max) + " " + str(_min) + " " + str(_range) + "    " + str((value - _min) / _range * 100)
+            index_value = self._observations_repo.find_observations("INDEX", area_document["iso3"], year)
+            if not index_value["success"] or len(index_value["data"]) == 0:
+                self._log.error("Could not retrieve observations from db")
+                return
+            index_value = index_value["data"][0]["value"]
+            if not (index_value - 0.0005 <= self._index.scored_values[area_document["iso3"]] <= index_value + 0.0005):
+                self._log.warning("The index value for " + area_document["iso3"] + " does not match. "
+                                  + str(index_value) + " obtained, " +
+                                  str(self._index.scored_values[area_document["iso3"]]) + " received.")
+                print "The index value for " + area_document["iso3"] + " does not match. "
+                + str(index_value) + " obtained, " + str(self._index.scored_values[area_document["iso3"]]) \
+                + " received."
+        scored_values = sorted(self._index.scored_values.items(), key=operator.itemgetter(1))
+        i = len(scored_values)
+        for value in scored_values:
+            self._index.ranked_values[value[0]] = i
+            i -= 1
 
+        #TODO: Validar ranks?
