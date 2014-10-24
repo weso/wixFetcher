@@ -103,7 +103,7 @@ class IndicatorsParser(object):
 
 
     def _turn_excell_ind_into_model_ind(self, excell_ind):
-        result = create_indicator(_type="Secondary",
+        result = create_indicator(_type=excell_ind.type_of_indicator,
                                   country_coverage=self._config.getint("INDICATORS_PARSER",
                                                                        "COUNTRY_COVERAGE"),
                                   provider_link=excell_ind.data_prov_link,
