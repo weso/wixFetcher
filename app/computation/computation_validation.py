@@ -22,6 +22,7 @@ class ComputationValidation(object):
         self._areas_repo = AreaRepository("localhost")
         self._observations = dict()
         self._components = dict()
+        self._subindexes = dict()
 
     def run(self):
         print "Inicializando indice"
@@ -30,6 +31,8 @@ class ComputationValidation(object):
         self._get_imputed_observations(u"2013")
         print "\n\nAgrupando en componentes"
         self._calculate_component_grouped_value(u"2013")
+        print "\n\nAgrupando en subindices"
+        self._calculate_subindex_grouped_value(u"2013")
 
     def _initialize_index(self):
         self._index = Index()
@@ -39,15 +42,16 @@ class ComputationValidation(object):
             return
         print "INDEX"
         for subindex_document in subindexes_document["data"]:
-            subindex = Subindex(subindex_document["indicator"])
+            subindex = Subindex(subindex_document["indicator"], subindex_document["weight"])
             self._index.add_subindex(subindex)
+            self._subindexes[subindex_document["_id"]] = subindex
             components_document = self._indicator_repo.find_indicators_components(subindex_document)
             print "\t" + subindex.code
             if not components_document["success"]:
                 self._log("Could not retrieve components from db")
                 return
             for component_document in components_document["data"]:
-                component = Component(component_document["indicator"])
+                component = Component(component_document["indicator"], component_document["weight"])
                 subindex.add_component(component)
                 self._components[component_document["_id"]] = component
                 indicators_document = self._indicator_repo.find_indicators_indicators(component_document)
@@ -163,4 +167,29 @@ class ComputationValidation(object):
                 print "\t" + component_document["indicator"] + ": " + str(component_mean) + "    (" + str(_sum) + ")-->(" + str((len(indicators_document) - unused_count)) + ")"
                 component = self._components[component_document["_id"]]
                 component.grouped_values[area_document["iso3"]] = component_mean
+
+    def _calculate_subindex_grouped_value(self, year):
+        areas_document = self._areas_repo.find_countries("name")
+        subindexes_document = self._indicator_repo.find_indicators_sub_indexes()
+        if not areas_document["success"]:
+            self._log.error("Could not retrieve areas from db")
+            return
+        if not subindexes_document["success"]:
+            self._log.error("Could not retrieve components from db")
+            return
+        areas_document = areas_document["data"]
+        subindexes_document = subindexes_document["data"]
+        for area_document in areas_document:
+            print area_document["iso3"]
+            for subindex_document in subindexes_document:
+                components_document = self._indicator_repo.find_indicator_children(subindex_document["indicator"])
+                _sum = 0
+                for component_document in components_document:
+                    component = self._components[component_document["_id"]]
+                    _sum += component.grouped_values[area_document["iso3"]] * component.weight
+                    print "\t\t" + str(component.grouped_values[area_document["iso3"]]) + "   " + str(component.weight)
+                subindex_mean = _sum
+                print "\t" + subindex_document["indicator"] + ": " + str(subindex_mean)
+                subindex = self._subindexes[subindex_document["_id"]]
+                subindex.grouped_values[area_document["iso3"]] = subindex_mean
 

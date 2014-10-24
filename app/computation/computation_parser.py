@@ -143,13 +143,13 @@ class ComputationParser(object):
                             if str(ranked_value) not in ["", " ", None]:
                                 computation = Computation("ranked", float(ranked_value))
                             observation, observation_uri = self._create_obs_and_uri(indicator_document,
-                                                                                    country_document, scored_value,
+                                                                                    country_document_aux, scored_value,
                                                                                     computation, "scored")
                             self._observations_repo.insert_observation(observation=observation,
                                                                        observation_uri=observation_uri,
-                                                                       area_iso3_code=country_document["iso3"],
+                                                                       area_iso3_code=country_document_aux["iso3"],
                                                                        indicator_code=indicator_document["indicator"],
-                                                                       area_name=country_document["name"],
+                                                                       area_name=country_document_aux["name"],
                                                                        indicator_name=indicator_document["name"])
             i += 1
 
