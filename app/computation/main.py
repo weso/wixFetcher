@@ -2,6 +2,7 @@ __author__ = 'Miguel'
 
 import logging
 import ConfigParser
+
 from application.wixFetcher.app.computation.computation_validation import ComputationValidation
 from application.wixFetcher.app.computation.computation_parser import ComputationParser
 
@@ -16,10 +17,10 @@ def run():
         configure_log()
         log = logging.getLogger('wix_computation')
         config = ConfigParser.RawConfigParser()
-        config.read("configuration.ini")
-        # comp_parser = ComputationParser(log, config)
-        # comp_parser.run()
-        comp_validation = ComputationValidation(log)
+        config.read("computation_config.ini")
+        comp_parser = ComputationParser(log, config)
+        comp_parser.run()
+        comp_validation = ComputationValidation(log, config)
         comp_validation.run()
 
 if __name__ == '__main__':

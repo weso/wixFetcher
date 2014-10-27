@@ -24,9 +24,9 @@ class ComputationParser(object):
         computations_sheet = get_sheet_by_name(self._config.get("EXCEL", "COMPUTATIONS_FILE_NAME"),
                                                self._config.get("EXCEL", "COMPUTATIONS_SHEET_NAME"))
         self._get_indicators_normalized_values(computations_sheet)
-        # self._get_components_values(computations_sheet)
-        # self._get_subindexes_values(computations_sheet)
-        # self._get_index_values(computations_sheet)
+        self._get_components_values(computations_sheet)
+        self._get_subindexes_values(computations_sheet)
+        self._get_index_values(computations_sheet)
 
     def _get_indicators_normalized_values(self, computations_sheet):
         more_indicators = True
@@ -212,7 +212,7 @@ class ComputationParser(object):
                     print "\t" + indicator_document["indicator"] + " " + country_document["iso3"] + " " + str(float(value))
                     self._observations_repo.normalize_plain_observation(country_document["iso3"],
                                                                         indicator_document["indicator"], "2013",
-                                                                        float(value))
+                                                                        float(value), "normalized")
             else:
                 for country_document_aux in countries_document["data"]:
                     if is_same_country(country_document_aux["name"],
@@ -222,7 +222,7 @@ class ComputationParser(object):
                             print "\t" + indicator_document["indicator"] + " " + country_document_aux["iso3"] + " " + str(float(value))
                             self._observations_repo.normalize_plain_observation(country_document_aux["iso3"],
                                                                                 indicator_document["indicator"], "2013",
-                                                                                float(value))
+                                                                                float(value), "normalized")
 
             i += 1
 
