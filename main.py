@@ -2,8 +2,9 @@ __author__ = 'Miguel'
 __date__ = '02/09/2014'
 
 import logging
-import xlrd
 import ConfigParser
+
+import xlrd
 
 from application.wixFetcher.app.parsers.parser import Parser
 

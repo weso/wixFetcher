@@ -4,7 +4,7 @@ __author__ = 'Miguel'
 class Index(object):
 
     def __init__(self):
-        self._label = "INDEX"
+        self._code = "INDEX"
         self._subindexes = []
         self._scored_values = dict()
         self._ranked_values = dict()
@@ -13,12 +13,12 @@ class Index(object):
         self._subindexes.append(subindex)
 
     @property
-    def label(self):
-        return self._label
+    def code(self):
+        return self._code
 
-    @label.setter
-    def label(self, value):
-        self._label = value
+    @code.setter
+    def code(self, value):
+        self._code = value
 
     @property
     def subindexes(self):

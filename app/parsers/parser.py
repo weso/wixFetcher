@@ -1,10 +1,11 @@
 __author__ = 'Dani'
 
+import traceback
+
 from ..extractor import Extractor
 from .indicatorsparser import IndicatorsParser
 from .secondaryobservationsparser import SecondaryObservationsParser
 from .primaryobservationsparser import PrimaryObservationsParser
-from ..dumizer.dumizer import Dumizer
 from infrastructure.mongo_repos.indicator_repository import IndicatorRepository
 from infrastructure.mongo_repos.component_repository import ComponentRepository
 from infrastructure.mongo_repos.subindex_repository import SubindexRepository
@@ -12,7 +13,6 @@ from infrastructure.mongo_repos.index_repository import IndexRepository
 from infrastructure.mongo_repos.observation_repository import ObservationRepository
 from infrastructure.mongo_repos.area_repository import AreaRepository
 from infrastructure.mongo_repos.visualization_repository import VisualizationRepository
-import traceback
 
 
 class Parser(object):
@@ -85,17 +85,17 @@ class Parser(object):
             self._log.info("Parsing process ended......")
 
 
-            self._log.info("Dumizing...... ")
-            dumizer = Dumizer(config=self._config,
-                              db_countries=areas_db,
-                              db_visualizations=visualizations_db,
-                              db_indicators=indicators_db,
-                              db_observations=observations_db)
-            dumizer.introduce_fake_components()
-            dumizer.introduce_fake_subindex()
-            dumizer.introduce_fake_index()
-
-            self._log.info("Dumized......")
+            # self._log.info("Dumizing...... ")
+            # dumizer = Dumizer(config=self._config,
+            #                   db_countries=areas_db,
+            #                   db_visualizations=visualizations_db,
+            #                   db_indicators=indicators_db,
+            #                   db_observations=observations_db)
+            # dumizer.introduce_fake_components()
+            # dumizer.introduce_fake_subindex()
+            # dumizer.introduce_fake_index()
+            #
+            # self._log.info("Dumized......")
 
 
         except BaseException as e:
