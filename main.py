@@ -1,11 +1,17 @@
-__author__ = 'Miguel'
-__date__ = '02/09/2014'
-
 import logging
-import xlrd
 import ConfigParser
-
+import xlrd
+from application.wixFetcher.app.computation.computation_parser import ComputationParser
+from application.wixFetcher.app.computation.computation_validation import ComputationValidation
+from application.wixFetcher.app.enrichment.enricher import Enricher
+from infrastructure.mongo_repos.indicator_repository import IndicatorRepository
+from infrastructure.mongo_repos.observation_repository import ObservationRepository
+from infrastructure.mongo_repos.area_repository import AreaRepository
+from infrastructure.mongo_repos.visualization_repository import VisualizationRepository
+from infrastructure.mongo_repos.ranking_repository import RankingRepository
 from application.wixFetcher.app.parsers.parser import Parser
+
+__author__ = 'Miguel'
 
 
 def configure_log():
@@ -23,25 +29,32 @@ def run():
                     config=config)
     book = xlrd.open_workbook("data_file.xlsx")
     parser.run(book)
-    # extractor = Extractor(log)
-    # parser = SecondaryObservationsParser(log)
-    # try:
-    #     data_sheets = extractor.get_data_sheets()
-    #     for sheet in data_sheets:
-    #         try:
-    #             parser.parse_data_sheet(sheet)
-    #         except BaseException as e:
-    #             log.error("While parsing sheet \"" + sheet.name + "\": " + e.message + "\n")
-    # except BaseException as e:
-    #     log.error("While accessing the Excel data file: " + e.message + "\n")
 
+    comp_parser = ComputationParser(log, config)
+    comp_parser.run()
+    comp_validation = ComputationValidation(log, config)
+    comp_validation.run()
+
+    indicators_db = IndicatorRepository(config.get("CONNECTION", "MONGO_IP"))
+    observations_db = ObservationRepository(config.get("CONNECTION", "MONGO_IP"))
+    areas_db = AreaRepository(config.get("CONNECTION", "MONGO_IP"))
+    visualizations_db = VisualizationRepository(config.get("CONNECTION", "MONGO_IP"))
+    rankings_db = RankingRepository(config.get("CONNECTION", "MONGO_IP"))
+
+    enricher = Enricher(config=config,
+                        db_countries=areas_db,
+                        db_observations=observations_db,
+                        db_indicators=indicators_db,
+                        db_visualizations=visualizations_db,
+                        db_rankings=rankings_db)
+
+    enricher.enrich_secondary_indicator_obs()
+    enricher.enrich_component_obs()
+    enricher.enrich_subindex_obs()
+    enricher.enrich_index_obs()
+    enricher.enrich_whole_ranking_repo()
 
 
 if __name__ == '__main__':
-    # try:
-    #     run()
-    #     print '\nDone!'
-    # except BaseException:
-    #     print '\nExecution finalized with errors. Check logs.'
     run()
     print '\nDone!'

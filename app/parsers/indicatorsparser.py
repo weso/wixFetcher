@@ -1,8 +1,8 @@
 __author__ = 'Dani'
 
 from webindex.domain.model.indicator.indicator import create_indicator
-from .utils import build_indicator_uri
-from .utils import normalize_component_code_for_uri, normalize_subindex_code_for_uri
+from application.wixFetcher.app.parsers.utils import build_indicator_uri
+from application.wixFetcher.app.parsers.utils import normalize_component_code_for_uri, normalize_subindex_code_for_uri
 from webindex.domain.model.component import create_component
 from webindex.domain.model.subindex import create_sub_index
 from webindex.domain.model.index import create_index
@@ -103,7 +103,7 @@ class IndicatorsParser(object):
 
 
     def _turn_excell_ind_into_model_ind(self, excell_ind):
-        result = create_indicator(_type="Secondary",
+        result = create_indicator(_type=excell_ind.type_of_indicator,
                                   country_coverage=self._config.getint("INDICATORS_PARSER",
                                                                        "COUNTRY_COVERAGE"),
                                   provider_link=excell_ind.data_prov_link,

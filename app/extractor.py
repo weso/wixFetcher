@@ -1,9 +1,6 @@
 __author__ = 'Miguel'
 __date__ = '02/09/2014'
 
-import xlrd
-import re
-
 
 class Extractor(object):
 
@@ -19,7 +16,6 @@ class Extractor(object):
         '''
         sheets = []
         for sheet in self._book.sheets():
-            print "Mojos"
             if self._is_needed_data_sheet(sheet.name):
                 sheets.append(sheet)
                 self._log.info("Sheet " + sheet.name + " retrieved")

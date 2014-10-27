@@ -71,17 +71,17 @@ class PrimaryObservationsParser(object):
                                                                  area_name=self._get_std_country_name(country_name),
                                                                  indicator_code=indicator_year_by_column_dict[icol].indicator,
                                                                  indicator_name=self._get_indicator_name(indicator_year_by_column_dict[icol].indicator),
-                                                                 previous_value=previous_value,
-                                                                 year_of_previous_value=previous_year,
+                                                                 previous_value=None,  # TODO
+                                                                 year_of_previous_value=None,  # TODO
                                                                  republish=True  # Primary obs are always republish
                                                                  )
                         observations_per_country_dict[indicator_year_by_column_dict[icol].indicator].append(model_obs)
-                for key in observations_per_country_dict:
-                    self._db_visualizations.insert_visualization(observations=observations_per_country_dict[key],
-                                                                 area_iso3_code=self._get_country_code_by_name(country_name),
-                                                                 area_name=self._get_std_country_name(country_name),
-                                                                 indicator_code=key,
-                                                                 indicator_name=self._get_indicator_name(key))
+                # for key in observations_per_country_dict:
+                #     self._db_visualizations.insert_visualization(observations=observations_per_country_dict[key],
+                #                                                  area_iso3_code=self._get_country_code_by_name(country_name),
+                #                                                  area_name=self._get_std_country_name(country_name),
+                #                                                  indicator_code=key,
+                #                                                  indicator_name=self._get_indicator_name(key))
             except ValueError as e:
                 self._log.error("ERROR while parsing row {} of sheet {}: {}. "
                                 "Parsing process will continue in the next row.".format(irow + 1,

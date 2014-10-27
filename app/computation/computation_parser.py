@@ -61,6 +61,10 @@ class ComputationParser(object):
                     if is_same_component(component_document["name"],
                                          str(computations_sheet.row(components_row)[i].value)):
                         print component_document["name"]
+
+                        weight = float(computations_sheet.row(int(self._config.get("EXCEL",
+                                                                                   "COMPONENTS_WEIGHTS_ROW")))[i].value)
+                        self._indicator_repo.update_indicator_weight(component_document["indicator"], weight)
                         self._insert_country_values(computations_sheet,
                                                     int(self._config.get("EXCEL", "COUNTRIES_COMPONENTS_START_ROW")),
                                                     int(self._config.get("EXCEL",
@@ -84,6 +88,9 @@ class ComputationParser(object):
                     if is_same_subindex(subindex_document["name"],
                                         str(computations_sheet.row(subindexes_row)[i].value)):
                         print subindex_document["name"]
+                        weight = float(computations_sheet.row(int(self._config.get("EXCEL",
+                                                                                   "SUBINDEXES_WEIGHTS_ROW")))[i].value)
+                        self._indicator_repo.update_indicator_weight(subindex_document["indicator"], weight)
                         self._insert_country_values(computations_sheet,
                                                     int(self._config.get("EXCEL", "COUNTRIES_SUBINDEXES_START_ROW")),
                                                     int(self._config.get("EXCEL",
@@ -136,13 +143,13 @@ class ComputationParser(object):
                             if str(ranked_value) not in ["", " ", None]:
                                 computation = Computation("ranked", float(ranked_value))
                             observation, observation_uri = self._create_obs_and_uri(indicator_document,
-                                                                                    country_document, scored_value,
+                                                                                    country_document_aux, scored_value,
                                                                                     computation, "scored")
                             self._observations_repo.insert_observation(observation=observation,
                                                                        observation_uri=observation_uri,
-                                                                       area_iso3_code=country_document["iso3"],
+                                                                       area_iso3_code=country_document_aux["iso3"],
                                                                        indicator_code=indicator_document["indicator"],
-                                                                       area_name=country_document["name"],
+                                                                       area_name=country_document_aux["name"],
                                                                        indicator_name=indicator_document["name"])
             i += 1
 
@@ -181,13 +188,13 @@ class ComputationParser(object):
                             if str(scored_value) not in ["", " ", None]:
                                 computation = Computation("scored", float(scored_value))
                             observation, observation_uri = self._create_obs_and_uri(indicator_document,
-                                                                                    country_document, value,
+                                                                                    country_document_aux, value,
                                                                                     computation, "normalized")
                             self._observations_repo.insert_observation(observation=observation,
                                                                        observation_uri=observation_uri,
-                                                                       area_iso3_code=country_document["iso3"],
+                                                                       area_iso3_code=country_document_aux["iso3"],
                                                                        indicator_code=indicator_document["indicator"],
-                                                                       area_name=country_document["name"],
+                                                                       area_name=country_document_aux["name"],
                                                                        indicator_name=indicator_document["name"])
             i += 1
             j += 1
@@ -205,7 +212,7 @@ class ComputationParser(object):
                     print "\t" + indicator_document["indicator"] + " " + country_document["iso3"] + " " + str(float(value))
                     self._observations_repo.normalize_plain_observation(country_document["iso3"],
                                                                         indicator_document["indicator"], "2013",
-                                                                        float(value))
+                                                                        float(value), "normalized")
             else:
                 for country_document_aux in countries_document["data"]:
                     if is_same_country(country_document_aux["name"],
@@ -213,9 +220,9 @@ class ComputationParser(object):
                         value = computations_sheet.row(i)[column].value
                         if str(value) not in ["", " ", None]:
                             print "\t" + indicator_document["indicator"] + " " + country_document_aux["iso3"] + " " + str(float(value))
-                            self._observations_repo.normalize_plain_observation(country_document["iso3"],
+                            self._observations_repo.normalize_plain_observation(country_document_aux["iso3"],
                                                                                 indicator_document["indicator"], "2013",
-                                                                                float(value))
+                                                                                float(value), "normalized")
 
             i += 1
 

@@ -1,10 +1,11 @@
 __author__ = 'Dani'
 
+import traceback
+
 from ..extractor import Extractor
 from .indicatorsparser import IndicatorsParser
 from .secondaryobservationsparser import SecondaryObservationsParser
 from .primaryobservationsparser import PrimaryObservationsParser
-from ..dumizer.dumizer import Dumizer
 from infrastructure.mongo_repos.indicator_repository import IndicatorRepository
 from infrastructure.mongo_repos.component_repository import ComponentRepository
 from infrastructure.mongo_repos.subindex_repository import SubindexRepository
@@ -83,6 +84,7 @@ class Parser(object):
             self._log.info("Primary observations parsed... ")
             self._log.info("Parsing process ended......")
 
+
             # self._log.info("Dumizing...... ")
             # dumizer = Dumizer(config=self._config,
             #                   db_countries=areas_db,
@@ -97,6 +99,7 @@ class Parser(object):
 
 
         except BaseException as e:
+            print traceback.format_exc()
             print "Parsing process finalized abruptly. Check logs"  # Put this print in some other place
             self._log.error("Parsing process finalized abruptly. Cause: {}".format(str(e)))
 
