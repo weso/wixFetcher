@@ -13,7 +13,67 @@ class Enricher(object):
 
 
     ##################################
-    #  RANKING ENRICHMENT
+    #  RANKING COLLECTION ENRICHMENT
+    ##################################
+
+    def enrich_internal_ranking_of_observations(self):
+        indicators_list = self._get_indicator_codes("Primary") + \
+                self._get_indicator_codes("Secondary") + \
+                self._get_indicator_codes("Component") + \
+                self._get_indicator_codes("Subindex")
+        for year in range(2007, 2014):
+            for indicator_code in indicators_list:
+                observations = self._look_for_observations_of_same_year_and_indicator(year, indicator_code)
+                self._actualize_ranking_of_observations_of_same_year_and_indicator(observations)
+
+
+    def _actualize_ranking_of_observations_of_same_year_and_indicator(self, observations):
+        sorted_obs = self._sort_observations_for_ranking(observations)
+        previous_value = 99999  # A random value big enough to be higher than any possible value
+                            # We will be using s-score or scored values, so the biggest number that
+                            # could be found is 100
+        previous_rank = 0
+        array_pos = 0
+        while array_pos < len(sorted_obs):
+            target_obs = sorted_obs[array_pos]
+            array_pos += 1  # Incrementing array_por for next ite
+            current_value = target_obs['values'][0]
+            if current_value < previous_value:
+                previous_rank = array_pos  # If current is not higher we have a draw and we have to use the same rank
+                                            # If it is higher, then rank should be updated with array_pos value
+
+            self._actualize_internal_ranking_of_observation(target_obs, previous_rank)  # At this point, previous_rank
+                                                                    # has been set to the correct value
+
+    def _actualize_internal_ranking_of_observation(self, observation_dict, ranking):
+        self._db_observations.normalize_plain_observation(area_iso3_code=observation_dict['area'],
+                                                          indicator_code=observation_dict['indicator'],
+                                                          year_literal=observation_dict['year'],
+                                                          normalized_value=ranking,
+                                                          computation_type='ranked')
+
+
+    @staticmethod
+    def _sort_observations_for_ranking(observations):
+        """
+        Return the received list of observation dicts ordered by value (descending)
+        :param observations:
+        :return:
+        """
+        return sorted(observations, key=lambda a_dict: a_dict['values'][0], reverse=True)
+
+
+
+    def _look_for_observations_of_same_year_and_indicator(self, year, indicator_code):
+        observation_dicts = self._db_observations.find_observations(year=str(year),
+                                                                    indicator_code=indicator_code)['data']
+
+        return observation_dicts
+
+
+
+    ##################################
+    #  RANKING COLLECTION ENRICHMENT
     ##################################
 
 
@@ -59,26 +119,27 @@ class Enricher(object):
     #  PREVIOUS VALUE AND VISUALIZATION ENRICHMENT
     ###############################################
 
-    def enrich_every_available_obs(self):
-        self._enrich_a_level_of_indicator_obs("Secondary", "normalized")
-        self._enrich_a_level_of_indicator_obs("Component", "scored")
-        self._enrich_a_level_of_indicator_obs("Subindex", "scored")
-        self._enrich_a_level_of_indicator_obs("Index", "scored")
+    def enrich_every_available_obs_with_previous_and_visualization(self):
+        self._enrich_a_level_of_indicator_obs_with_preious_and_visualization("Secondary", "normalized")
+        self._enrich_a_level_of_indicator_obs_with_preious_and_visualization("Primary", "normalized")
+        self._enrich_a_level_of_indicator_obs_with_preious_and_visualization("Component", "scored")
+        self._enrich_a_level_of_indicator_obs_with_preious_and_visualization("Subindex", "scored")
+        self._enrich_a_level_of_indicator_obs_with_preious_and_visualization("Index", "scored")
 
-    def enrich_secondary_indicator_obs(self):
-        self._enrich_a_level_of_indicator_obs("Secondary", "normalized")
-        self._enrich_a_level_of_indicator_obs("Primary", "normalized")
+    def enrich_secondary_indicator_obs_with_previous_and_visualization(self):
+        self._enrich_a_level_of_indicator_obs_with_preious_and_visualization("Secondary", "normalized")
+        self._enrich_a_level_of_indicator_obs_with_preious_and_visualization("Primary", "normalized")
 
-    def enrich_component_obs(self):
-        self._enrich_a_level_of_indicator_obs("Component", "scored")
+    def enrich_component_obs_with_previous_and_visualization(self):
+        self._enrich_a_level_of_indicator_obs_with_preious_and_visualization("Component", "scored")
 
-    def enrich_subindex_obs(self):
-        self._enrich_a_level_of_indicator_obs("Subindex", "scored")
+    def enrich_subindex_obs_with_previous_and_visualization(self):
+        self._enrich_a_level_of_indicator_obs_with_preious_and_visualization("Subindex", "scored")
 
-    def enrich_index_obs(self):
-        self._enrich_a_level_of_indicator_obs("Index", "scored")
+    def enrich_index_obs_with_previous_and_visualization(self):
+        self._enrich_a_level_of_indicator_obs_with_preious_and_visualization("Index", "scored")
 
-    def _enrich_a_level_of_indicator_obs(self, level, computation_type):
+    def _enrich_a_level_of_indicator_obs_with_preious_and_visualization(self, level, computation_type):
         print level, computation_type, "-------------------------------"
         indicator_codes = self._get_indicator_codes(level)
         country_codes = self._get_country_codes()
@@ -172,11 +233,17 @@ class Enricher(object):
         return result
 
 
-    def _get_indicator_codes(self, _type):
+    def _get_indicator_codes(self, _type=None):
+        """
+        When receiving None, it return all the available indicators
+
+        :param _type:
+        :return:
+        """
         result = []
         indicator_dicts = self._db_indicators.find_indicators()['data']
         for a_dict in indicator_dicts:
-            if a_dict['type'] == _type:
+            if _type is None or a_dict['type'] == _type:
                 result.append(a_dict['indicator'])
         return result
 
