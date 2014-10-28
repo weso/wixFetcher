@@ -1,11 +1,5 @@
 __author__ = 'Miguel'
 
-import xlrd
-
-
-def get_sheet_by_name(file_name, sheet_name):
-    return xlrd.open_workbook(file_name).sheet_by_name(sheet_name)
-
 
 def is_same_country(country_name_1, country_name_2):
     if country_name_1.lower() == country_name_2.lower():

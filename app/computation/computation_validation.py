@@ -1,14 +1,12 @@
+import numpy
+import operator
 from __future__ import division
-from application.wixFetcher.app.parsers.utils import build_label_for_observation, build_observation_uri
 from utility.time import utc_now
+
+from application.wixFetcher.app.parsers.utils import build_label_for_observation, build_observation_uri
 from webindex.domain.model.observation.computation import Computation
 from webindex.domain.model.observation.observation import create_observation
 from webindex.domain.model.observation.year import Year
-
-__author__ = 'Miguel'
-
-import numpy
-import operator
 from application.wixFetcher.app.computation.aux_model.index import Index
 from application.wixFetcher.app.computation.aux_model.subindex import Subindex
 from application.wixFetcher.app.computation.aux_model.component import Component
@@ -18,14 +16,17 @@ from infrastructure.mongo_repos.indicator_repository import IndicatorRepository
 from infrastructure.mongo_repos.observation_repository import ObservationRepository
 from infrastructure.mongo_repos.area_repository import AreaRepository
 
+__author__ = 'Miguel'
+
 
 class ComputationValidation(object):
+
     def __init__(self, log, config):
         self._log = log
         self._config = config
-        self._indicator_repo = IndicatorRepository("localhost")
-        self._observations_repo = ObservationRepository("localhost")
-        self._areas_repo = AreaRepository("localhost")
+        self._indicator_repo = IndicatorRepository(self._config.get("CONNECTION", "MONGO_IP"))
+        self._observations_repo = ObservationRepository(self._config.get("CONNECTION", "MONGO_IP"))
+        self._areas_repo = AreaRepository(self._config.get("CONNECTION", "MONGO_IP"))
         self._observations = dict()
         self._components = dict()
         self._subindexes = dict()
