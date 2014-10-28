@@ -48,10 +48,7 @@ def run():
                         db_visualizations=visualizations_db,
                         db_rankings=rankings_db)
 
-    enricher.enrich_secondary_indicator_obs()
-    enricher.enrich_component_obs()
-    enricher.enrich_subindex_obs()
-    enricher.enrich_index_obs()
+    enricher.enrich_every_available_obs_with_previous_and_visualization()
     enricher.enrich_whole_ranking_repo()
 
 
