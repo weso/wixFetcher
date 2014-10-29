@@ -92,12 +92,12 @@ class ComputationParser(object):
                 more_subindexes = False
 
     def _get_index_observations(self):
-        indicator_document = self._indicator_repo.find_indicators_index()
+        indicator_document = self._indicator_repo.find_indicators_by_code("INDEX")
         if not indicator_document["success"]:
             self._log.error("Computations parsing: Could not retrieve INDEX indicator from db")
             return
         values_row = int(self._config.get("EXCEL", "INDEX_VALUES_START_ROW"))
-        scored_values_column = int(self._config.get("EXCEL", "INDEX_SCORED_VALES_COLUMN"))
+        scored_values_column = int(self._config.get("EXCEL", "INDEX_SCORED_VALUES_COLUMN"))
         ranked_values_column = int(self._config.get("EXCEL", "INDEX_RANKED_VALUES_COLUMN"))
         self._insert_index_values(values_row, scored_values_column, ranked_values_column, indicator_document["data"])
 
