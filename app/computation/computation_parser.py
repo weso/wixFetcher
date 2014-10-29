@@ -62,6 +62,10 @@ class ComputationParser(object):
                 for component_document in components_document["data"]:
                     if is_same_component(component_document["name"],
                                          str(self._computations_sheet.row(components_row)[i].value)):
+                        weight = float(
+                            self._computations_sheet.row(int(self._config.get("EXCEL", "COMPONENTS_WEIGHTS_ROW")))[
+                                i].value)
+                        self._indicator_repo.update_indicator_weight(component_document["indicator"], weight)
                         self._insert_country_values(int(self._config.get("EXCEL", "COMPONENTS_VALUES_START_ROW")),
                                                     int(self._config.get("EXCEL",
                                                                          "COMPONENTS_SCORED_VALUES_START_ROW")),
@@ -83,6 +87,10 @@ class ComputationParser(object):
                 for subindex_document in subindexes_document["data"]:
                     if is_same_subindex(subindex_document["name"],
                                         str(self._computations_sheet.row(subindexes_row)[i].value)):
+                        weight = float(
+                            self._computations_sheet.row(int(self._config.get("EXCEL", "SUBINDEXES_WEIGHTS_ROW")))[
+                                i].value)
+                        self._indicator_repo.update_indicator_weight(subindex_document["indicator"], weight)
                         self._insert_country_values(int(self._config.get("EXCEL", "SUBINDEXES_VALUES_START_ROW")),
                                                     int(self._config.get("EXCEL",
                                                                          "SUBINDEXES_SCORED_VALUES_START_ROW")),

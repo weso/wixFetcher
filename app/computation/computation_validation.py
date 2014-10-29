@@ -1,6 +1,5 @@
 import numpy
 import operator
-from __future__ import division
 from utility.time import utc_now
 
 from application.wixFetcher.app.parsers.utils import build_label_for_observation, build_observation_uri
@@ -204,7 +203,7 @@ class ComputationValidation(object):
         observation = create_observation(issued=utc_now(),
                                          publisher=None,
                                          data_set=None,
-                                         obs_type=obs_type,  # Just for now
+                                         obs_type=obs_type,
                                          label=build_label_for_observation(indicator_document["indicator"],
                                                                            country_document["name"],
                                                                            int(year),
@@ -316,9 +315,9 @@ class ComputationValidation(object):
                 self._log.warning("The index value for " + area_document["iso3"] + " does not match. "
                                   + str(index_value) + " obtained, " +
                                   str(self._index.scored_values[area_document["iso3"]]) + " received.")
-                print "The index value for " + area_document["iso3"] + " does not match. "
-                + str(index_value) + " obtained, " + str(self._index.scored_values[area_document["iso3"]]) \
-                + " received."
+                print "The index value for " + area_document["iso3"] + " does not match. " \
+                      + str(index_value) + " obtained, " \
+                      + str(self._index.scored_values[area_document["iso3"]]) + " received."
         scored_values = sorted(self._index.scored_values.items(), key=operator.itemgetter(1))
         i = len(scored_values)
         for value in scored_values:
