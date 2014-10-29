@@ -12,9 +12,9 @@ class Enricher(object):
         self._db_rankings = db_rankings
 
 
-    ##################################
-    #  RANKING COLLECTION ENRICHMENT
-    ##################################
+    #######################################
+    #  'ranked' OF OBSERVATIONS ENRICHMENT
+    #######################################
 
     def enrich_internal_ranking_of_observations(self):
         indicators_list = self._get_indicator_codes("Primary") + \
