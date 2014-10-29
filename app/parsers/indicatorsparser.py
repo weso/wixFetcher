@@ -61,7 +61,8 @@ class IndicatorsParser(object):
                                                 component_uri=build_indicator_uri(self._config,
                                                                                   normalize_component_code_for_uri(comp.name)),
                                                 subindex_name=comp.subindex.name,
-                                                index_name="INDEX")
+                                                index_name="INDEX",
+                                                weight=comp.weight)
 
         for subin_key in self._subindexes:
             subin = self._subindexes[subin_key]
@@ -69,7 +70,8 @@ class IndicatorsParser(object):
             self._db_subindex.insert_subindex(model_subin,
                                               subindex_uri=build_indicator_uri(self._config,
                                                                                normalize_subindex_code_for_uri(subin.name)),
-                                              index_name="INDEX")
+                                              index_name="INDEX",
+                                              weight=subin.weight)
 
         self._db_index.insert_index(self._create_model_index_object(),
                                     index_uri=build_indicator_uri(self._config, "INDEX"))
