@@ -326,5 +326,3 @@ class ComputationValidation(object):
                 area_document = self._areas_repo.find_countries_by_code_or_income(value[0])["data"]
                 self._update_observation(self._index, area_document, year, i, "ranked")
             i -= 1
-
-        #TODO: Validar ranks?
