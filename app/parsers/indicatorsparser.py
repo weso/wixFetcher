@@ -176,7 +176,7 @@ class IndicatorsParser(object):
         weight_col = self._config.getint("INDICATORS_PARSER", "GROUP_WEIGHT_COLUMN")
 
         for irow in range(0, sheet.nrows):
-            if sheet.row(irow)[name_col].value.upper() == name.upper():
+            if self._normalize_component_name(sheet.row(irow)[name_col].value).upper() == name.upper():
                 try:
                     return float(sheet.row(irow)[weight_col].value)
                 except BaseException as e:
@@ -199,9 +199,7 @@ class IndicatorsParser(object):
         :return:
         """
 
-        return original.replace("Relevant ", "")\
-            .replace("relevant ", "")\
-            .replace("&", "and")
+        return original.replace("&", "and").capitalize()
 
 
     @staticmethod
@@ -214,8 +212,7 @@ class IndicatorsParser(object):
         :param original:
         :return:
         """
-        return original.replace("and", "&")\
-            .replace("And", "&")\
+        return original.replace("&", "and")\
             .capitalize()
 
     def _look_for_high_low(self, row):
@@ -240,7 +237,7 @@ class IndicatorsParser(object):
     def _look_for_weight(self, row):
         cell = row[self._config.getint("INDICATORS_PARSER", "WEIGHT")]
         if ExcellUtils.is_empty_cell(cell):
-            self._log.warning("Some missing wight in indicatrs. Assuming weight 1, but check excell file.")
+            self._log.warning("Some missing weight in indicators. Assuming weight 1, but check excell file.")
         else:
             try:
                 return float(cell.value)

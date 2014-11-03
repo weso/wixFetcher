@@ -111,14 +111,11 @@ def normalize_code_for_uri(original):
 
 
 def normalize_component_code_for_uri(original):
-    return original.replace("Relevant ", "")\
-        .replace("relevant ", "")\
-        .replace("&", "and")
+    return original.replace("&", "and")
 
 
 def normalize_subindex_code_for_uri(original):
-    return original.replace("and", "&")\
-        .replace("And", "&")
+    return original.replace("&", "and")
 
 
 def deduce_previous_value_and_year(observations, year_target):
