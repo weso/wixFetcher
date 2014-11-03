@@ -111,9 +111,7 @@ def normalize_code_for_uri(original):
 
 
 def normalize_component_code_for_uri(original):
-    return original.replace("Relevant ", "")\
-        .replace("relevant ", "")\
-        .replace("&", "and")
+    return original.replace("&", "and")
 
 
 def normalize_subindex_code_for_uri(original):
