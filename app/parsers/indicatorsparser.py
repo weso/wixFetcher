@@ -201,8 +201,7 @@ class IndicatorsParser(object):
 
         return original.replace("Relevant ", "")\
             .replace("relevant ", "")\
-            .replace("&", "and")\
-            .capitalize()
+            .replace("&", "and")
 
 
     @staticmethod
@@ -303,7 +302,7 @@ class IndicatorsParser(object):
         if ExcellUtils.is_empty_cell(cell):
             return None
         else:
-            return cell.value.capitalize()
+            return cell.value
 
 
 
