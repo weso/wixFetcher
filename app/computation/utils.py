@@ -42,4 +42,6 @@ def is_same_subindex(subindex_name_1, subindex_name_2):
         return True
     if "relevant" in subindex_name_1.lower() and "relevant" in subindex_name_2.lower():
         return True
+    if "freedom" in subindex_name_1.lower() and "freedom" in subindex_name_2.lower():
+        return True
     return False
