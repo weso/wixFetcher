@@ -48,7 +48,7 @@ class ComputationValidation(object):
             self._calculate_subindex_grouped_value(year, update)
             print "\tScoreando subindices"
             self._calculate_subindex_scored_value(year, update)
-            print "\tCalculando indice y ranking"
+            print "\tCalculando index y ranking"
             self._calculate_index(year, update)
 
     def _initialize_index(self):
