@@ -1,14 +1,11 @@
-from __future__ import division
-from application.wixFetcher.app.parsers.utils import build_label_for_observation, build_observation_uri
+import numpy
+import operator
 from utility.time import utc_now
+
+from application.wixFetcher.app.parsers.utils import build_label_for_observation, build_observation_uri
 from webindex.domain.model.observation.computation import Computation
 from webindex.domain.model.observation.observation import create_observation
 from webindex.domain.model.observation.year import Year
-
-__author__ = 'Miguel'
-
-import numpy
-import operator
 from application.wixFetcher.app.computation.aux_model.index import Index
 from application.wixFetcher.app.computation.aux_model.subindex import Subindex
 from application.wixFetcher.app.computation.aux_model.component import Component
@@ -18,14 +15,17 @@ from infrastructure.mongo_repos.indicator_repository import IndicatorRepository
 from infrastructure.mongo_repos.observation_repository import ObservationRepository
 from infrastructure.mongo_repos.area_repository import AreaRepository
 
+__author__ = 'Miguel'
+
 
 class ComputationValidation(object):
+
     def __init__(self, log, config):
         self._log = log
         self._config = config
-        self._indicator_repo = IndicatorRepository("localhost")
-        self._observations_repo = ObservationRepository("localhost")
-        self._areas_repo = AreaRepository("localhost")
+        self._indicator_repo = IndicatorRepository(self._config.get("CONNECTION", "MONGO_IP"))
+        self._observations_repo = ObservationRepository(self._config.get("CONNECTION", "MONGO_IP"))
+        self._areas_repo = AreaRepository(self._config.get("CONNECTION", "MONGO_IP"))
         self._observations = dict()
         self._components = dict()
         self._subindexes = dict()
@@ -48,7 +48,7 @@ class ComputationValidation(object):
             self._calculate_subindex_grouped_value(year, update)
             print "\tScoreando subindices"
             self._calculate_subindex_scored_value(year, update)
-            print "\tCalculando indice y ranking"
+            print "\tCalculando index y ranking"
             self._calculate_index(year, update)
 
     def _initialize_index(self):
@@ -203,7 +203,7 @@ class ComputationValidation(object):
         observation = create_observation(issued=utc_now(),
                                          publisher=None,
                                          data_set=None,
-                                         obs_type=obs_type,  # Just for now
+                                         obs_type=obs_type,
                                          label=build_label_for_observation(indicator_document["indicator"],
                                                                            country_document["name"],
                                                                            int(year),
@@ -315,9 +315,9 @@ class ComputationValidation(object):
                 self._log.warning("The index value for " + area_document["iso3"] + " does not match. "
                                   + str(index_value) + " obtained, " +
                                   str(self._index.scored_values[area_document["iso3"]]) + " received.")
-                print "The index value for " + area_document["iso3"] + " does not match. "
-                + str(index_value) + " obtained, " + str(self._index.scored_values[area_document["iso3"]]) \
-                + " received."
+                print "The index value for " + area_document["iso3"] + " does not match. " \
+                      + str(index_value) + " obtained, " \
+                      + str(self._index.scored_values[area_document["iso3"]]) + " received."
         scored_values = sorted(self._index.scored_values.items(), key=operator.itemgetter(1))
         i = len(scored_values)
         for value in scored_values:
@@ -326,5 +326,3 @@ class ComputationValidation(object):
                 area_document = self._areas_repo.find_countries_by_code_or_income(value[0])["data"]
                 self._update_observation(self._index, area_document, year, i, "ranked")
             i -= 1
-
-        #TODO: Validar ranks?
