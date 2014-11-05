@@ -207,7 +207,7 @@ class ComputationParser(object):
                 value = self._computations_sheet.row(i)[column].value
                 if str(value) not in ["", " ", None]:
                     self._observations_repo.normalize_plain_observation(country_document["iso3"],
-                                                                        indicator_document["indicator"], "2013",
+                                                                        indicator_document["indicator"], "2014",
                                                                         float(value), "normalized")
             else:
                 for country_document_aux in countries_document["data"]:
@@ -216,7 +216,7 @@ class ComputationParser(object):
                         value = self._computations_sheet.row(i)[column].value
                         if str(value) not in ["", " ", None]:
                             self._observations_repo.normalize_plain_observation(country_document_aux["iso3"],
-                                                                                indicator_document["indicator"], "2013",
+                                                                                indicator_document["indicator"], "2014",
                                                                                 float(value), "normalized")
 
             i += 1
@@ -228,7 +228,7 @@ class ComputationParser(object):
                                          obs_type=obs_type,  # Just for now
                                          label=build_label_for_observation(indicator_document["indicator"],
                                                                            country_document["name"],
-                                                                           2013,
+                                                                           2014,
                                                                            obs_type),
                                          status=obs_type,
                                          ref_indicator=None,
@@ -237,7 +237,7 @@ class ComputationParser(object):
                                          ref_year=None, )
         if computation is not None:
             observation.add_computation(computation.comp_type, computation.value)
-        observation._ref_year = Year(2013)
+        observation._ref_year = Year(2014)
         observation_uri = build_observation_uri(self._config, indicator_document["indicator"], country_document["iso3"],
-                                                2013)
+                                                2014)
         return observation, observation_uri

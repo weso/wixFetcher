@@ -36,7 +36,7 @@ class ComputationValidation(object):
         for year in years["data"]:
             print year
             update = True
-            if year == u'2013':
+            if year == u'2014':
                 update = False
             print "\tNormalizando observaciones"
             self._get_imputed_observations(year, update)
