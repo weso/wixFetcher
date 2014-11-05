@@ -168,7 +168,9 @@ class Enricher(object):
                                                                area_iso3_code=observation_dicts[0]['area'],
                                                                area_name=observation_dicts[0]['area_name'],
                                                                indicator_code=observation_dicts[0]['indicator'],
-                                                               indicator_name=observation_dicts[0]['indicator_name'])
+                                                               indicator_name=observation_dicts[0]['indicator_name'],
+                                                               provider_name=observation_dicts[0]['provider_name'],
+                                                               provider_url=observation_dicts[0]['provider_url'])
 
     def _enrich_iso_ind_observations_with_previous_value(self, observation_dicts, computation_type):
         for obs_dict in observation_dicts:

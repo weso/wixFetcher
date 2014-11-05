@@ -37,14 +37,45 @@ class IndicatorsParser(object):
         self._log.info("Secondary indicators detected: {}".format(len(self._indicators)))
         for excell_ind in self._indicators:
             model_ind = self._turn_excell_ind_into_model_ind(excell_ind)
+            provider_name, provider_url = self._get_real_name_and_url_from_organization_parsed_name(excell_ind.data_provider)
             self._db.insert_indicator(model_ind,
                                       indicator_uri=build_indicator_uri(self._config, excell_ind.code),
                                       component_name=excell_ind.component.name,
                                       subindex_name=excell_ind.component.subindex.name,
                                       index_name="INDEX",
-                                      weight=excell_ind.weight)
+                                      weight=excell_ind.weight,
+                                      provider_name=provider_name,
+                                      provider_url=provider_url)
         self._persist_groups()
         return len(self._indicators)
+
+    def _get_real_name_and_url_from_organization_parsed_name(self, parsed_name):
+        if parsed_name.upper() == "WF":
+            return self._config.get("PROVIDERS", "WF_NAME"), self._config.get("PROVIDERS", "WF_URL")
+        elif parsed_name.upper() == "ITU":
+            return "ITU (International Telecommunication Union)", "http://www.itu.int/"
+        elif parsed_name.upper() == "WB":
+            return "WB (World Bank)", "http://www.worldbank.org/"
+        elif parsed_name == "Internet World Stats/Alexa/Facebook":
+            return "IWS (Internet World Stats)", "http://www.internetworldstats.com/"
+        elif parsed_name.upper() == "WEF":
+            return "WEF (World Economy Forum)", "http://www.weforum.org/"
+        elif parsed_name.upper() == "INSEAD":
+            return "INSEAD, The Business School for the World", "http://www.insead.edu/"
+        elif parsed_name.upper() == "UN":
+            return "UN (United Nations)", "http://www.un.org/"
+        elif parsed_name == "Packet Clearing House":
+            return "PCH (Packet Clearing House)", "https://www.pch.net/"
+        elif parsed_name == "Wireless Intelligence (GSMA)":
+            return "GSMA Wireless Intelligence", "https://gsmaintelligence.com/"
+        elif parsed_name.upper() == "UNESCO":
+            return "UNESCO (United Nations Educational, Scientific and Cultural Organization)", "www.unesco.org"
+        elif parsed_name.upper() == "RSF":
+            return "RWB (Reporters Without Borders", "http://www.rsf.org/"
+        elif parsed_name in ["FH", "Freedom House (FH)"]:
+            return "FH (Freedom House)", "www.freedomhouse.org/"
+        else:
+            raise ValueError("Unable to recognize organization name: {}".format(parsed_name))
 
 
 
@@ -62,7 +93,9 @@ class IndicatorsParser(object):
                                                                                   normalize_component_code_for_uri(comp.name)),
                                                 subindex_name=comp.subindex.name,
                                                 index_name="INDEX",
-                                                weight=comp.weight)
+                                                weight=comp.weight,
+                                                provider_name=self._config.get("PROVIDERS", "WF_NAME"),
+                                                provider_url=self._config.get("PROVIDERS", "WF_URL"))
 
         for subin_key in self._subindexes:
             subin = self._subindexes[subin_key]
@@ -71,10 +104,14 @@ class IndicatorsParser(object):
                                               subindex_uri=build_indicator_uri(self._config,
                                                                                normalize_subindex_code_for_uri(subin.name)),
                                               index_name="INDEX",
-                                              weight=subin.weight)
+                                              weight=subin.weight,
+                                              provider_name=self._config.get("PROVIDERS", "WF_NAME"),
+                                              provider_url=self._config.get("PROVIDERS", "WF_URL"))
 
         self._db_index.insert_index(self._create_model_index_object(),
-                                    index_uri=build_indicator_uri(self._config, "INDEX"))
+                                    index_uri=build_indicator_uri(self._config, "INDEX"),
+                                    provider_name=self._config.get("PROVIDERS", "WF_NAME"),
+                                    provider_url=self._config.get("PROVIDERS", "WF_URL"))
 
 
     @staticmethod
@@ -108,7 +145,7 @@ class IndicatorsParser(object):
         result = create_indicator(_type=excell_ind.type_of_indicator,
                                   country_coverage=self._config.getint("INDICATORS_PARSER",
                                                                        "COUNTRY_COVERAGE"),
-                                  provider_link=excell_ind.data_prov_link,
+                                  provider_link=excell_ind.data_provider,
                                   republish=excell_ind.republish,  # We may have to check this
                                   high_low=excell_ind.high_low,
                                   label=excell_ind.name,
@@ -131,7 +168,7 @@ class IndicatorsParser(object):
                                  source=self._look_for_source(row),
                                  weight=self._look_for_weight(row),
                                  type_of_indicator=self._look_for_type(row),
-                                 data_prov_link=self._look_for_data_prov_link(row),
+                                 data_provider=self._look_for_data_prov_link(row),
                                  latest_rep=self._look_for_latest_rep(row),
                                  high_low=self._look_for_high_low(row),
                                  republish=self._look_for_republish(row))
@@ -345,14 +382,14 @@ class ExcellUtils(object):
 
 class IndicatorExcell(object):
     def __init__(self, code, name, description=None,
-                 source=None, data_prov_link=None,
+                 source=None, data_provider=None,
                  latest_rep=None, type_of_indicator=None,
                  weight=None, high_low=None, republish=None):
         self.code = code
         self.name = name
         self.description = description
         self.source = source
-        self.data_prov_link = data_prov_link
+        self.data_provider = data_provider
         self.latest_rep = latest_rep
         self.high_low = high_low
         self.type_of_indicator = type_of_indicator

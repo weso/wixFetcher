@@ -4,6 +4,8 @@ import random
 
 KEY_INDICATOR_NAME = "name"
 KEY_INDICATOR_REPUBLISH = "republish"
+KEY_INDICATOR_PROV_NAME = "prov_name"
+KEY_INDICATOR_PROV_URL = "prov_url"
 
 
 
@@ -44,6 +46,8 @@ def initialize_indicator_dict(db_indicators):
         sub_dict = {}
         sub_dict[KEY_INDICATOR_NAME] = a_dict['name']
         sub_dict[KEY_INDICATOR_REPUBLISH] = a_dict['republish']
+        sub_dict[KEY_INDICATOR_PROV_NAME] = a_dict['provider_name']
+        sub_dict[KEY_INDICATOR_PROV_URL] = a_dict['provider_url']
         result[a_dict['indicator']] = sub_dict
     return result
 
