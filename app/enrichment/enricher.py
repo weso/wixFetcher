@@ -21,7 +21,7 @@ class Enricher(object):
                 self._get_indicator_codes("Secondary") + \
                 self._get_indicator_codes("Component") + \
                 self._get_indicator_codes("Subindex")
-        for year in range(2007, 2014):
+        for year in range(2008, 2015):
             for indicator_code in indicators_list:
                 observations = self._look_for_observations_of_same_year_and_indicator(year, indicator_code)
                 self._actualize_ranking_of_observations_of_same_year_and_indicator(observations)
@@ -156,7 +156,8 @@ class Enricher(object):
         self._enrich_iso_ind_observations_generating_visualization(observation_dicts, computation_type)
 
     def _enrich_iso_ind_observations_generating_visualization(self, observation_dicts, computation_type):
-        first_year, last_year = self._db_visualizations.get_first_and_last_year()
+        # first_year, last_year = self._db_visualizations.get_first_and_last_year()
+        first_year, last_year = 2008, 2014
         values = []
         for year in range(first_year, last_year + 1):
             value = self._look_for_a_value_for_a_year(year, observation_dicts, computation_type)
@@ -168,7 +169,9 @@ class Enricher(object):
                                                                area_iso3_code=observation_dicts[0]['area'],
                                                                area_name=observation_dicts[0]['area_name'],
                                                                indicator_code=observation_dicts[0]['indicator'],
-                                                               indicator_name=observation_dicts[0]['indicator_name'])
+                                                               indicator_name=observation_dicts[0]['indicator_name'],
+                                                               provider_name=observation_dicts[0]['provider_name'],
+                                                               provider_url=observation_dicts[0]['provider_url'])
 
     def _enrich_iso_ind_observations_with_previous_value(self, observation_dicts, computation_type):
         for obs_dict in observation_dicts:
