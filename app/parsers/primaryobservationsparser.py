@@ -3,8 +3,8 @@ __author__ = 'Dani'
 
 from .utils import initialize_country_dict, look_for_country_name_exception, \
     build_label_for_observation, _is_empty_value, build_observation_uri, \
-    deduce_previous_value_and_year, normalize_code_for_uri, initialize_indicator_dict,\
-    KEY_INDICATOR_NAME, random_float, KEY_INDICATOR_PROV_URL, KEY_INDICATOR_PROV_NAME
+    normalize_code_for_uri, initialize_indicator_dict,\
+    KEY_INDICATOR_NAME, KEY_INDICATOR_PROV_URL, KEY_INDICATOR_PROV_NAME
 from webindex.domain.model.observation.observation import create_observation
 from webindex.domain.model.observation.year import Year
 from utility.time import utc_now
@@ -60,8 +60,8 @@ class PrimaryObservationsParser(object):
                         if indicator_year_by_column_dict[icol].indicator not in observations_per_country_dict:
                             observations_per_country_dict[indicator_year_by_column_dict[icol].indicator] = []
                         obs_count += 1
-                        previous_value, previous_year = deduce_previous_value_and_year(observations_per_country_dict[indicator_year_by_column_dict[icol].indicator],
-                                                                                       int(model_obs.ref_year.value))
+                        # previous_value, previous_year = deduce_previous_value_and_year(observations_per_country_dict[indicator_year_by_column_dict[icol].indicator],
+                        #                                                                int(model_obs.ref_year.value))
                         self._db_observations.insert_observation(observation=model_obs,
                                                                  observation_uri=build_observation_uri(config=self._config,
                                                                                                        ind_code=indicator_year_by_column_dict[icol].indicator,
@@ -71,11 +71,11 @@ class PrimaryObservationsParser(object):
                                                                  area_name=self._get_std_country_name(country_name),
                                                                  indicator_code=indicator_year_by_column_dict[icol].indicator,
                                                                  indicator_name=self._get_indicator_name(indicator_year_by_column_dict[icol].indicator),
-                                                                 previous_value=None,  # TODO
-                                                                 year_of_previous_value=None,  # TODO
+                                                                 previous_value=None,
+                                                                 year_of_previous_value=None,
                                                                  republish=True,  # Primary obs are always republish
-                                                                 provider_url=None,
-                                                                 provider_name=None
+                                                                 provider_url=self._get_indicator_prov_url(indicator_year_by_column_dict[icol].indicator),
+                                                                 provider_name=self._get_indicator_prov_name(indicator_year_by_column_dict[icol].indicator)
                                                                  )
                         observations_per_country_dict[indicator_year_by_column_dict[icol].indicator].append(model_obs)
 
@@ -135,7 +135,7 @@ class PrimaryObservationsParser(object):
                                         value=sheet.row(row)[col].value,
                                         ref_area=None,
                                         ref_year=None)
-            result.ref_year = Year(2014)
+            result.ref_year = Year(2013)
             return result
 
 

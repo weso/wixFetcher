@@ -21,7 +21,7 @@ class Enricher(object):
                 self._get_indicator_codes("Secondary") + \
                 self._get_indicator_codes("Component") + \
                 self._get_indicator_codes("Subindex")
-        for year in range(2008, 2015):
+        for year in range(2007, 2014):
             for indicator_code in indicators_list:
                 observations = self._look_for_observations_of_same_year_and_indicator(year, indicator_code)
                 self._actualize_ranking_of_observations_of_same_year_and_indicator(observations)
@@ -120,26 +120,26 @@ class Enricher(object):
     ###############################################
 
     def enrich_every_available_obs_with_previous_and_visualization(self):
-        self._enrich_a_level_of_indicator_obs_with_preious_and_visualization("Secondary", "normalized")
-        self._enrich_a_level_of_indicator_obs_with_preious_and_visualization("Primary", "normalized")
-        self._enrich_a_level_of_indicator_obs_with_preious_and_visualization("Component", "scored")
-        self._enrich_a_level_of_indicator_obs_with_preious_and_visualization("Subindex", "scored")
-        self._enrich_a_level_of_indicator_obs_with_preious_and_visualization("Index", "scored")
+        self._enrich_a_level_of_indicator_obs_with_previous_and_visualization("Secondary", None)
+        self._enrich_a_level_of_indicator_obs_with_previous_and_visualization("Primary", None)
+        self._enrich_a_level_of_indicator_obs_with_previous_and_visualization("Component", "scored")
+        self._enrich_a_level_of_indicator_obs_with_previous_and_visualization("Subindex", "scored")
+        self._enrich_a_level_of_indicator_obs_with_previous_and_visualization("Index", "scored")
 
     def enrich_secondary_indicator_obs_with_previous_and_visualization(self):
-        self._enrich_a_level_of_indicator_obs_with_preious_and_visualization("Secondary", "normalized")
-        self._enrich_a_level_of_indicator_obs_with_preious_and_visualization("Primary", "normalized")
+        self._enrich_a_level_of_indicator_obs_with_previous_and_visualization("Secondary", None)
+        self._enrich_a_level_of_indicator_obs_with_previous_and_visualization("Primary", None)
 
     def enrich_component_obs_with_previous_and_visualization(self):
-        self._enrich_a_level_of_indicator_obs_with_preious_and_visualization("Component", "scored")
+        self._enrich_a_level_of_indicator_obs_with_previous_and_visualization("Component", "scored")
 
     def enrich_subindex_obs_with_previous_and_visualization(self):
-        self._enrich_a_level_of_indicator_obs_with_preious_and_visualization("Subindex", "scored")
+        self._enrich_a_level_of_indicator_obs_with_previous_and_visualization("Subindex", "scored")
 
     def enrich_index_obs_with_previous_and_visualization(self):
-        self._enrich_a_level_of_indicator_obs_with_preious_and_visualization("Index", "scored")
+        self._enrich_a_level_of_indicator_obs_with_previous_and_visualization("Index", "scored")
 
-    def _enrich_a_level_of_indicator_obs_with_preious_and_visualization(self, level, computation_type):
+    def _enrich_a_level_of_indicator_obs_with_previous_and_visualization(self, level, computation_type):
         print level, computation_type, "-------------------------------"
         indicator_codes = self._get_indicator_codes(level)
         country_codes = self._get_country_codes()
@@ -152,12 +152,11 @@ class Enricher(object):
 
 
     def _enrich_observations_of_same_iso_and_ind(self, observation_dicts, computation_type):
-        self._enrich_iso_ind_observations_with_previous_value(observation_dicts, computation_type)
+        # self._enrich_iso_ind_observations_with_previous_value(observation_dicts, computation_type)
         self._enrich_iso_ind_observations_generating_visualization(observation_dicts, computation_type)
 
     def _enrich_iso_ind_observations_generating_visualization(self, observation_dicts, computation_type):
-        # first_year, last_year = self._db_visualizations.get_first_and_last_year()
-        first_year, last_year = 2008, 2014
+        first_year, last_year = self._db_visualizations.get_first_and_last_year()
         values = []
         for year in range(first_year, last_year + 1):
             value = self._look_for_a_value_for_a_year(year, observation_dicts, computation_type)
@@ -171,29 +170,30 @@ class Enricher(object):
                                                                indicator_code=observation_dicts[0]['indicator'],
                                                                indicator_name=observation_dicts[0]['indicator_name'],
                                                                provider_name=observation_dicts[0]['provider_name'],
-                                                               provider_url=observation_dicts[0]['provider_url'])
+                                                               provider_url=observation_dicts[0]['provider_url'],
+                                                               short_name=observation_dicts[0]['short_name'],
+                                                               continent=observation_dicts[0]['continent'])
 
-    def _enrich_iso_ind_observations_with_previous_value(self, observation_dicts, computation_type):
-        for obs_dict in observation_dicts:
-            previous_dict = self._look_for_previous_dict(observation_dicts, int(obs_dict['year']))
-            if previous_dict is not None:
-                self._enrich_observation_from_it_previous_observation(obs_dict, previous_dict, computation_type)
+    # def _enrich_iso_ind_observations_with_previous_value(self, observation_dicts, computation_type):
+    #     for obs_dict in observation_dicts:
+    #         previous_dict = self._look_for_previous_dict(observation_dicts, int(obs_dict['year']))
+    #         if previous_dict is not None:
+    #             self._enrich_observation_from_it_previous_observation(obs_dict, previous_dict, computation_type)
 
 
-    def _enrich_observation_from_it_previous_observation(self, target_dict, old_dict, computation_type):
-        current_value = self._look_for_value(target_dict, computation_type)
-        previous_value = self._look_for_value(old_dict, computation_type)
-        tendency = 0
-        if current_value < previous_value:
-            tendency = -1
-        elif current_value > previous_value:
-            tendency = 1
-        self._db_observations.update_previous_value_object(indicator_code=target_dict['indicator'],
-                                                           area_code=target_dict["area"],
-                                                           current_year=target_dict['year'],
-                                                           previous_year=old_dict['year'],
-                                                           previous_value=previous_value,
-                                                           tendency=tendency)
+    # def _enrich_observation_from_it_previous_observation(self, target_dict, old_dict, computation_type):
+    #     current_value = self._look_for_value(target_dict, computation_type)
+    #     previous_value = self._look_for_value(old_dict, computation_type)
+    #     tendency = 0
+    #     if current_value < previous_value:
+    #         tendency = -1
+    #     elif current_value > previous_value:
+    #         tendency = 1
+    #     self._db_observations.update_previous_value_object(indicator_code=target_dict['indicator'],
+    #                                                        area_code=target_dict["area"],
+    #                                                        current_year=target_dict['year'],
+    #                                                        previous_year=None,
+    #                                                        previous_value=previous_value)
     #####################
     # COMMON UTIL METHODS
     #####################
@@ -203,10 +203,12 @@ class Enricher(object):
         for obs in observations:
             year_obs = obs['year']
             if str(year_obs) == str(year_target):
-                if desired_type is None:
-                    return obs['value']
-                elif desired_type in ['scored', 'normalized']:
-                    return obs[desired_type]
+                if desired_type in [None, 'value', 'normalized', 'scored']:
+                    return obs['values'][0]
+                # if desired_type is None:
+                #     return obs['value']
+                # elif desired_type in ['scored', 'normalized']:
+                #     return obs[desired_type]
                 else:
                     raise ValueError("Unknown computation {} asked for an obs".format(desired_type))
         return None  # No observation found for target_year in this list
@@ -223,17 +225,17 @@ class Enricher(object):
 
 
 
-    @staticmethod
-    def _look_for_previous_dict(observation_dicts, year):
-        result = None
-        for obs in observation_dicts:
-            tmp_year = int(obs['year'])
-            if tmp_year < year:
-                if result is None:
-                    result = obs
-                elif int(result['year']) < tmp_year:
-                    result = obs
-        return result
+    # @staticmethod
+    # def _look_for_previous_dict(observation_dicts, year):
+    #     result = None
+    #     for obs in observation_dicts:
+    #         tmp_year = int(obs['year'])
+    #         if tmp_year < year:
+    #             if result is None:
+    #                 result = obs
+    #             elif int(result['year']) < tmp_year:
+    #                 result = obs
+    #     return result
 
 
     def _get_indicator_codes(self, _type=None):
