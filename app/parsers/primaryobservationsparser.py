@@ -3,8 +3,8 @@ __author__ = 'Dani'
 
 from .utils import initialize_country_dict, look_for_country_name_exception, \
     build_label_for_observation, _is_empty_value, build_observation_uri, \
-    deduce_previous_value_and_year, normalize_code_for_uri, initialize_indicator_dict,\
-    KEY_INDICATOR_NAME, random_float
+    normalize_code_for_uri, initialize_indicator_dict,\
+    KEY_INDICATOR_NAME, KEY_INDICATOR_PROV_URL, KEY_INDICATOR_PROV_NAME
 from webindex.domain.model.observation.observation import create_observation
 from webindex.domain.model.observation.year import Year
 from utility.time import utc_now
@@ -60,8 +60,8 @@ class PrimaryObservationsParser(object):
                         if indicator_year_by_column_dict[icol].indicator not in observations_per_country_dict:
                             observations_per_country_dict[indicator_year_by_column_dict[icol].indicator] = []
                         obs_count += 1
-                        previous_value, previous_year = deduce_previous_value_and_year(observations_per_country_dict[indicator_year_by_column_dict[icol].indicator],
-                                                                                       int(model_obs.ref_year.value))
+                        # previous_value, previous_year = deduce_previous_value_and_year(observations_per_country_dict[indicator_year_by_column_dict[icol].indicator],
+                        #                                                                int(model_obs.ref_year.value))
                         self._db_observations.insert_observation(observation=model_obs,
                                                                  observation_uri=build_observation_uri(config=self._config,
                                                                                                        ind_code=indicator_year_by_column_dict[icol].indicator,
@@ -71,17 +71,14 @@ class PrimaryObservationsParser(object):
                                                                  area_name=self._get_std_country_name(country_name),
                                                                  indicator_code=indicator_year_by_column_dict[icol].indicator,
                                                                  indicator_name=self._get_indicator_name(indicator_year_by_column_dict[icol].indicator),
-                                                                 previous_value=None,  # TODO
-                                                                 year_of_previous_value=None,  # TODO
-                                                                 republish=True  # Primary obs are always republish
+                                                                 previous_value=None,
+                                                                 year_of_previous_value=None,
+                                                                 republish=True,  # Primary obs are always republish
+                                                                 provider_url=self._get_indicator_prov_url(indicator_year_by_column_dict[icol].indicator),
+                                                                 provider_name=self._get_indicator_prov_name(indicator_year_by_column_dict[icol].indicator)
                                                                  )
                         observations_per_country_dict[indicator_year_by_column_dict[icol].indicator].append(model_obs)
-                # for key in observations_per_country_dict:
-                #     self._db_visualizations.insert_visualization(observations=observations_per_country_dict[key],
-                #                                                  area_iso3_code=self._get_country_code_by_name(country_name),
-                #                                                  area_name=self._get_std_country_name(country_name),
-                #                                                  indicator_code=key,
-                #                                                  indicator_name=self._get_indicator_name(key))
+
             except ValueError as e:
                 self._log.error("ERROR while parsing row {} of sheet {}: {}. "
                                 "Parsing process will continue in the next row.".format(irow + 1,
@@ -137,10 +134,8 @@ class PrimaryObservationsParser(object):
                                         ref_indicator=None,
                                         value=sheet.row(row)[col].value,
                                         ref_area=None,
-                                        ref_year=None
-                                        )
+                                        ref_year=None)
             result.ref_year = Year(2013)
-            result.add_computation("normalized", random_float(-3,3))
             return result
 
 
@@ -176,15 +171,28 @@ class PrimaryObservationsParser(object):
 
 
     def _get_indicator_name(self, indicator_code):
+        return self._get_indicator_property(indicator_code=indicator_code,
+                                            key_to_use=KEY_INDICATOR_NAME)
+
+    def _get_indicator_prov_name(self, indicator_code):
+        return self._get_indicator_property(indicator_code=indicator_code,
+                                            key_to_use=KEY_INDICATOR_PROV_NAME)
+
+    def _get_indicator_prov_url(self, indicator_code):
+        return self._get_indicator_property(indicator_code=indicator_code,
+                                            key_to_use=KEY_INDICATOR_PROV_URL)
+
+    def _get_indicator_property(self, indicator_code, key_to_use):
         """
-        It receives the code of an indicator and return its name
+        It receives the code of an indicator and return certain property stored
+        in the indicated key
 
         :param indicator_code:
         :return:
         """
         propper_indicator_code = normalize_code_for_uri(indicator_code)
         if propper_indicator_code in self._indicator_dict:
-            return self._indicator_dict[indicator_code][KEY_INDICATOR_NAME]
+            return self._indicator_dict[propper_indicator_code][key_to_use]
         else:
             self._log.error("Unrecognized indicator code: {}. Parsing process will continue anyway. ".format(indicator_code))
             raise ValueError("Unrecognized indicator code : {}".format(indicator_code))

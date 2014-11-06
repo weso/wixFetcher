@@ -7,14 +7,9 @@ from webindex.domain.model.observation.year import Year
 from .utils import initialize_country_dict, look_for_country_name_exception,\
     build_label_for_observation, _is_empty_value,\
     build_observation_uri, initialize_indicator_dict, normalize_code_for_uri, \
-    deduce_previous_value_and_year, KEY_INDICATOR_NAME, KEY_INDICATOR_REPUBLISH, random_float
+    KEY_INDICATOR_NAME, KEY_INDICATOR_REPUBLISH, \
+    KEY_INDICATOR_PROV_NAME, KEY_INDICATOR_PROV_URL
 from utility.time import utc_now
-import sys
-
-
-
-def _add_dummy_computation_normalized(observation):
-    observation.add_computation("normalized", random_float(-3, 3))
 
 
 class SecondaryObservationsParser(object):
@@ -87,7 +82,7 @@ class SecondaryObservationsParser(object):
                                                      computation_type)
                 obs_count += 1
                 country_parsed_obs.append(model_obs)
-                previous_value, previous_year = deduce_previous_value_and_year(country_parsed_obs, int(year_value))
+                # previous_value, previous_year = deduce_previous_value_and_year(country_parsed_obs, int(year_value))
                 self._db_observations.insert_observation(observation=model_obs,
                                                          observation_uri=build_observation_uri(config=self._config,
                                                                                                ind_code=indicator_code,
@@ -99,18 +94,15 @@ class SecondaryObservationsParser(object):
                                                          indicator_name=self._get_indicator_name(indicator_code),
                                                          previous_value=None,  # TODO
                                                          year_of_previous_value=None,  # TODO
-                                                         republish=self._get_republish(indicator_code))
+                                                         republish=self._get_republish(indicator_code),
+                                                         provider_name=self._get_indicator_prov_name(indicator_code),
+                                                         provider_url=self._get_indicator_prov_url(indicator_code))
             else:
                 self._log.info("Empty value in secondary observation: "
                                "sheet {}, column {}, country {}.".format(sheet_name,
                                                                          str(i + 1),
                                                                          country_name))
             i += 1
-        # self._db_visualizations.insert_visualization(observations=country_parsed_obs,
-        #                                              area_iso3_code=area_code,
-        #                                              area_name=self._get_std_country_name(country_name),
-        #                                              indicator_code=indicator_code,
-        #                                              indicator_name=self._get_indicator_name(indicator_code))
         return obs_count
 
 
@@ -142,7 +134,6 @@ class SecondaryObservationsParser(object):
                                          ref_area=None,
                                          ref_year=None)
         observation._ref_year = Year(year_value)
-        _add_dummy_computation_normalized(observation)
         return observation
 
 
@@ -176,18 +167,33 @@ class SecondaryObservationsParser(object):
                 return self._get_std_country_name(possible_correction)
 
     def _get_indicator_name(self, indicator_code):
+        return self._get_indicator_property(indicator_code=indicator_code,
+                                            key_to_use=KEY_INDICATOR_NAME)
+
+    def _get_indicator_prov_name(self, indicator_code):
+        return self._get_indicator_property(indicator_code=indicator_code,
+                                            key_to_use=KEY_INDICATOR_PROV_NAME)
+
+    def _get_indicator_prov_url(self, indicator_code):
+        return self._get_indicator_property(indicator_code=indicator_code,
+                                            key_to_use=KEY_INDICATOR_PROV_URL)
+
+    def _get_indicator_property(self, indicator_code, key_to_use):
         """
-        It receives the code of an indicator and return its name
+        It receives the code of an indicator and return certain property stored
+        in the indicated key
 
         :param indicator_code:
         :return:
         """
         propper_indicator_code = normalize_code_for_uri(indicator_code)
         if propper_indicator_code in self._indicator_dict:
-            return self._indicator_dict[propper_indicator_code][KEY_INDICATOR_NAME]
+            return self._indicator_dict[propper_indicator_code][key_to_use]
         else:
             self._log.error("Unrecognized indicator code: {}. Parsing process will continue anyway. ".format(indicator_code))
             raise ValueError("Unrecognized indicator code : {}".format(indicator_code))
+
+
 
     def _get_republish(self, indicator_code):
         propper_indicator_code = normalize_code_for_uri(indicator_code)
