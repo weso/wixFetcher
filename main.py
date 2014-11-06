@@ -29,9 +29,10 @@ def run():
                     config=config)
     book = xlrd.open_workbook("data_file.xlsx")
     parser.run(book)
-
+    print "Computation parser"
     comp_parser = ComputationParser(log, config)
     comp_parser.run()
+    print "Computation validation"
     comp_validation = ComputationValidation(log, config)
     comp_validation.run()
 
@@ -47,9 +48,12 @@ def run():
                         db_indicators=indicators_db,
                         db_visualizations=visualizations_db,
                         db_rankings=rankings_db)
-
+    print "----------------", "Starting enrichment previous and visualization"
     enricher.enrich_every_available_obs_with_previous_and_visualization()
+    print "----------------", "Starting enrichment ranking repo"
     enricher.enrich_whole_ranking_repo()
+    print "----------------", "Starting enrichment internal ranking"
+    enricher.enrich_internal_ranking_of_observations()
 
 
 if __name__ == '__main__':

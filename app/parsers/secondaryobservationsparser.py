@@ -7,7 +7,7 @@ from webindex.domain.model.observation.year import Year
 from .utils import initialize_country_dict, look_for_country_name_exception,\
     build_label_for_observation, _is_empty_value,\
     build_observation_uri, initialize_indicator_dict, normalize_code_for_uri, \
-    deduce_previous_value_and_year, KEY_INDICATOR_NAME, KEY_INDICATOR_REPUBLISH, \
+    KEY_INDICATOR_NAME, KEY_INDICATOR_REPUBLISH, \
     KEY_INDICATOR_PROV_NAME, KEY_INDICATOR_PROV_URL
 from utility.time import utc_now
 
@@ -82,7 +82,7 @@ class SecondaryObservationsParser(object):
                                                      computation_type)
                 obs_count += 1
                 country_parsed_obs.append(model_obs)
-                previous_value, previous_year = deduce_previous_value_and_year(country_parsed_obs, int(year_value))
+                # previous_value, previous_year = deduce_previous_value_and_year(country_parsed_obs, int(year_value))
                 self._db_observations.insert_observation(observation=model_obs,
                                                          observation_uri=build_observation_uri(config=self._config,
                                                                                                ind_code=indicator_code,
