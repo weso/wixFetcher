@@ -8,7 +8,7 @@ from .utils import initialize_country_dict, look_for_country_name_exception,\
     build_label_for_observation, _is_empty_value,\
     build_observation_uri, initialize_indicator_dict, normalize_code_for_uri, \
     KEY_INDICATOR_NAME, KEY_INDICATOR_REPUBLISH, \
-    KEY_INDICATOR_PROV_NAME, KEY_INDICATOR_PROV_URL
+    KEY_INDICATOR_PROV_NAME, KEY_INDICATOR_PROV_URL, KEY_INDICATOR_TENDENCY
 from utility.time import utc_now
 
 
@@ -96,7 +96,8 @@ class SecondaryObservationsParser(object):
                                                          year_of_previous_value=None,  # TODO
                                                          republish=self._get_republish(indicator_code),
                                                          provider_name=self._get_indicator_prov_name(indicator_code),
-                                                         provider_url=self._get_indicator_prov_url(indicator_code))
+                                                         provider_url=self._get_indicator_prov_url(indicator_code),
+                                                         tendency=self._get_indicator_tendency(indicator_code))
             else:
                 self._log.info("Empty value in secondary observation: "
                                "sheet {}, column {}, country {}.".format(sheet_name,
@@ -133,7 +134,7 @@ class SecondaryObservationsParser(object):
                                          value=obs_value,
                                          ref_area=None,
                                          ref_year=None)
-        observation._ref_year = Year(year_value)
+        observation._ref_year = Year(str(year_value))
         return observation
 
 
@@ -177,6 +178,10 @@ class SecondaryObservationsParser(object):
     def _get_indicator_prov_url(self, indicator_code):
         return self._get_indicator_property(indicator_code=indicator_code,
                                             key_to_use=KEY_INDICATOR_PROV_URL)
+
+    def _get_indicator_tendency(self, indicator_code):
+        return self._get_indicator_property(indicator_code=indicator_code,
+                                            key_to_use=KEY_INDICATOR_TENDENCY)
 
     def _get_indicator_property(self, indicator_code, key_to_use):
         """

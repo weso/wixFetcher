@@ -6,6 +6,7 @@ KEY_INDICATOR_NAME = "name"
 KEY_INDICATOR_REPUBLISH = "republish"
 KEY_INDICATOR_PROV_NAME = "prov_name"
 KEY_INDICATOR_PROV_URL = "prov_url"
+KEY_INDICATOR_TENDENCY = 'high_low'
 
 
 
@@ -48,8 +49,18 @@ def initialize_indicator_dict(db_indicators):
         sub_dict[KEY_INDICATOR_REPUBLISH] = a_dict['republish']
         sub_dict[KEY_INDICATOR_PROV_NAME] = a_dict['provider_name']
         sub_dict[KEY_INDICATOR_PROV_URL] = a_dict['provider_url']
+        sub_dict[KEY_INDICATOR_TENDENCY] = _deduce_tendency_from_high_low(a_dict['high_low'])
         result[a_dict['indicator']] = sub_dict
     return result
+
+
+def _deduce_tendency_from_high_low(high_low):
+    if high_low == "high":
+        return 1
+    elif high_low == "low":
+        return -1
+    else:
+        raise ValueError("Unknown high_low for an indicator: {}".format(high_low))
 
 
 

@@ -4,7 +4,8 @@ __author__ = 'Dani'
 from .utils import initialize_country_dict, look_for_country_name_exception, \
     build_label_for_observation, _is_empty_value, build_observation_uri, \
     normalize_code_for_uri, initialize_indicator_dict,\
-    KEY_INDICATOR_NAME, KEY_INDICATOR_PROV_URL, KEY_INDICATOR_PROV_NAME
+    KEY_INDICATOR_NAME, KEY_INDICATOR_PROV_URL, KEY_INDICATOR_PROV_NAME, \
+    KEY_INDICATOR_TENDENCY
 from webindex.domain.model.observation.observation import create_observation
 from webindex.domain.model.observation.year import Year
 from utility.time import utc_now
@@ -75,7 +76,8 @@ class PrimaryObservationsParser(object):
                                                                  year_of_previous_value=None,
                                                                  republish=True,  # Primary obs are always republish
                                                                  provider_url=self._get_indicator_prov_url(indicator_year_by_column_dict[icol].indicator),
-                                                                 provider_name=self._get_indicator_prov_name(indicator_year_by_column_dict[icol].indicator)
+                                                                 provider_name=self._get_indicator_prov_name(indicator_year_by_column_dict[icol].indicator),
+                                                                 tendency=self._get_indicator_tendency(indicator_year_by_column_dict[icol].indicator)
                                                                  )
                         observations_per_country_dict[indicator_year_by_column_dict[icol].indicator].append(model_obs)
 
@@ -181,6 +183,10 @@ class PrimaryObservationsParser(object):
     def _get_indicator_prov_url(self, indicator_code):
         return self._get_indicator_property(indicator_code=indicator_code,
                                             key_to_use=KEY_INDICATOR_PROV_URL)
+
+    def _get_indicator_tendency(self, indicator_code):
+        return self._get_indicator_property(indicator_code=indicator_code,
+                                            key_to_use=KEY_INDICATOR_TENDENCY)
 
     def _get_indicator_property(self, indicator_code, key_to_use):
         """
