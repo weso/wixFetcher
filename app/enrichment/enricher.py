@@ -13,7 +13,7 @@ class Enricher(object):
 
 
     ##################################
-    #  INTERNAL RANKING ENRICHMENT
+    #  RANKING COLLECTION ENRICHMENT
     ##################################
 
     def enrich_internal_ranking_of_observations(self):
@@ -24,24 +24,35 @@ class Enricher(object):
         for year in range(2007, 2014):
             for indicator_code in indicators_list:
                 observations = self._look_for_observations_of_same_year_and_indicator(year, indicator_code)
+                if len(observations) == 0:
+                    print indicator_code, year
                 self._actualize_ranking_of_observations_of_same_year_and_indicator(observations)
+
+    @staticmethod
+    def _deduce_tendency(observation_dict):
+        return observation_dict['tendency']
 
 
     def _actualize_ranking_of_observations_of_same_year_and_indicator(self, observations):
-        sorted_obs = self._sort_observations_for_ranking(observations)
-        previous_value = 99999  # A random value big enough to be higher than any possible value
+        if len(observations) == 0:
+            return
+        tendency = self._deduce_tendency(observations[0])
+        sorted_obs = self._sort_observations_for_ranking(observations, tendency)
+        previous_value = 999999999  # A random value big enough to be higher than any possible value
                             # We will be using s-score or scored values, so the biggest number that
                             # could be found is 100
+        if tendency == -1:
+            previous_value = -999999999
         previous_rank = 0
         array_pos = 0
         while array_pos < len(sorted_obs):
             target_obs = sorted_obs[array_pos]
             array_pos += 1  # Incrementing array_por for next ite
             current_value = target_obs['values'][0]
-            if current_value < previous_value:
-                previous_rank = array_pos  # If current is not higher we have a draw and we have to use the same rank
-                                            # If it is higher, then rank should be updated with array_pos value
-
+            if (current_value < previous_value and tendency == 1) or (current_value > previous_value and tendency == -1):
+                previous_rank = array_pos  # If current is not higher/lower we have a draw and we have to use the same
+                                       # rank. If it is higher/lower, then rank should be updated with array_pos value
+            previous_value = current_value
             self._actualize_internal_ranking_of_observation(target_obs, previous_rank)  # At this point, previous_rank
                                                                     # has been set to the correct value
 
@@ -54,13 +65,16 @@ class Enricher(object):
 
 
     @staticmethod
-    def _sort_observations_for_ranking(observations):
+    def _sort_observations_for_ranking(observations, tendency):
         """
         Return the received list of observation dicts ordered by value (descending)
         :param observations:
         :return:
         """
-        return sorted(observations, key=lambda a_dict: a_dict['values'][0], reverse=True)
+        reverse = True
+        if tendency == -1:
+            reverse = False
+        return sorted(observations, key=lambda a_dict: a_dict['values'][0], reverse=reverse)
 
 
 
@@ -172,7 +186,9 @@ class Enricher(object):
                                                                provider_name=observation_dicts[0]['provider_name'],
                                                                provider_url=observation_dicts[0]['provider_url'],
                                                                short_name=observation_dicts[0]['short_name'],
-                                                               continent=observation_dicts[0]['continent'])
+                                                               continent=observation_dicts[0]['continent'],
+                                                               republish=observation_dicts[0]['republish'],
+                                                               tendency=observation_dicts[0]['tendency'])
 
     # def _enrich_iso_ind_observations_with_previous_value(self, observation_dicts, computation_type):
     #     for obs_dict in observation_dicts:
@@ -194,7 +210,6 @@ class Enricher(object):
     #                                                        current_year=target_dict['year'],
     #                                                        previous_year=None,
     #                                                        previous_value=previous_value)
-
     #####################
     # COMMON UTIL METHODS
     #####################
