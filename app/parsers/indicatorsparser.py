@@ -108,7 +108,7 @@ class IndicatorsParser(object):
                                               provider_name=self._config.get("PROVIDERS", "WF_NAME"),
                                               provider_url=self._config.get("PROVIDERS", "WF_URL"))
 
-        self._db_index.insert_index(self._create_model_index_object(),
+        self._db_index.insert_index(self._create_model_index_object(self._config.get("OTHERS", "INDEX_DESCRIPTION")),
                                     index_uri=build_indicator_uri(self._config, "INDEX"),
                                     provider_name=self._config.get("PROVIDERS", "WF_NAME"),
                                     provider_url=self._config.get("PROVIDERS", "WF_URL"))
@@ -120,7 +120,8 @@ class IndicatorsParser(object):
                                   contributor=None,
                                   issued=utc_now(),
                                   label=excell_comp.name,
-                                  notation=None)
+                                  notation=None,
+                                  comment=excell_comp.description)
         return result
 
     @staticmethod
@@ -128,15 +129,17 @@ class IndicatorsParser(object):
         result = create_sub_index(order=None,
                                   colour=None,
                                   label=excell_subin.name,
-                                  notation=None)
+                                  notation=None,
+                                  comment=excell_subin.description)
         return result
 
     @staticmethod
-    def _create_model_index_object():
+    def _create_model_index_object(description):
         result = create_index(order=None,
                               colour=None,
                               label="Index",
-                              notation=None)
+                              notation=None,
+                              comment=description)
         return result
 
 
@@ -191,7 +194,8 @@ class IndicatorsParser(object):
             subindex = self._subindexes[subindex_name]
         else:
             subindex = SubIndexExcell(name=subindex_name,
-                                      weight=self._look_for_group_weight(subindex_name, sheet_group_weights))
+                                      weight=self._look_for_group_weight(subindex_name, sheet_group_weights),
+                                      description=self._look_for_group_description(subindex_name, sheet_group_weights))
             self._subindexes[subindex_name] = subindex
 
 
@@ -200,13 +204,13 @@ class IndicatorsParser(object):
             component = self._components[component_name]
         else:
             component = ComponentExcell(name=component_name,
-                                        weight=self._look_for_group_weight(subindex_name, sheet_group_weights))
+                                        weight=self._look_for_group_weight(subindex_name, sheet_group_weights),
+                                        description=self._look_for_group_description(component_name, sheet_group_weights))
             subindex.add_component(component)
             self._components[component_name] = component
 
         #Linking indicator and component
         component.add_indicator(indicator)
-
 
     def _look_for_group_weight(self, name, sheet):
         name_col = self._config.getint("INDICATORS_PARSER", "GROUP_NAME_COLUMN")
@@ -222,7 +226,19 @@ class IndicatorsParser(object):
         self._log.error("Unable to detect weight for a grouped entity: {}".format(name))
         raise ValueError("Unable to detect weight for a grouped entity: {}".format(name))
 
+    def _look_for_group_description(self, name, sheet):
+        name_col = self._config.getint("INDICATORS_PARSER", "GROUP_NAME_COLUMN")
+        description_col = self._config.getint("INDICATORS_PARSER", "GROUP_DESCRIPTION_COLUMN")
 
+        for irow in range(0, sheet.nrows):
+            if self._normalize_component_name(sheet.row(irow)[name_col].value).upper() == name.upper():
+                try:
+                    return str(sheet.row(irow)[description_col].value)
+                except BaseException as e:
+                    self._log.error("Wrong description for a grouped entity: {}".format(name))
+                    raise ValueError("Wrong description for a grouped entity: {}".format(name))
+        self._log.error("Unable to detect description for a grouped entity: {}".format(name))
+        raise ValueError("Unable to detect description for a grouped entity: {}".format(name))
 
     @staticmethod
     def _normalize_component_name(original):
@@ -400,10 +416,11 @@ class IndicatorExcell(object):
 
 
 class ComponentExcell(object):
-    def __init__(self, name, weight):
+    def __init__(self, name, weight, description=None):
         self.name = name
         self.weight = weight
         self.subindex = None
+        self.description = description
         self.indicators = []
 
     def add_indicator(self, indicator):
@@ -413,9 +430,10 @@ class ComponentExcell(object):
 
 
 class SubIndexExcell(object):
-    def __init__(self, name, weight):
+    def __init__(self, name, weight, description=None):
         self.name = name
         self.weight = weight
+        self.description = description
         self.components = []
 
     def add_component(self, component):
