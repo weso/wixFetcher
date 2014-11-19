@@ -340,11 +340,10 @@ class IndicatorsParser(object):
         :param original:
         :return:
         """
-        result = original.capitalize()
-        if result.endswith("."):
-            return result
+        if original.endswith("."):
+            return original
         else:
-            return result + "."
+            return original + "."
 
 
     def _look_for_name(self, row):
